@@ -67,6 +67,9 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
         }
 
         .form-group {
@@ -148,13 +151,15 @@
 
 <body>
     <header class="editor-header">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <button onclick="location.href='index.html'" style="background: #444;">← 戻る</button>
-            <h2 style="font-size: 1.2rem;">ノベルエディター</h2>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button id="btn-add-scene" style="background: var(--accent-color); color: #000;">+ シーン追加</button>
-            <button id="btn-play-now">プレビュー</button>
+        <div style="display: flex; align-items: center; gap: 2rem; width: 100%; max-width: 1200px; margin: 0 auto;">
+            <button onclick="location.href='index.html'"
+                style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1.5rem;">←
+                ページに戻る</button>
+            <h2 style="font-size: 1.2rem; flex-grow: 1; text-align: center;">ノベルエディター</h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="btn-add-scene" style="background: var(--accent-color); color: #000;">+ シーン追加</button>
+                <button id="btn-play-now">プレビュー</button>
+            </div>
         </div>
     </header>
 
