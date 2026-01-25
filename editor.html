@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor - Visual Novel Maker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            grid-column: 1 / -1;
+        }
+
+        /* Sidebar: Scene List */
+        #sidebar {
+            background: rgba(255, 255, 255, 0.03);
+            border-right: 1px solid var(--box-border);
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .scene-item {
+            padding: 0.8rem;
+            background: var(--box-bg);
+            border: 1px solid var(--box-border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .scene-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .scene-item.active {
+            border-color: var(--primary-color);
+            background: rgba(98, 0, 234, 0.2);
+        }
+
+        .btn-delete {
+            background: #d32f2f;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        /* Main Content: Edit Area */
+        #edit-area {
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: #888;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--box-border);
+            border-radius: 8px;
+            padding: 1rem;
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .preview-box {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 12px;
+            border: 1px solid var(--box-border);
+            display: flex;
+            align-items: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-text {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            font-size: 0.9rem;
+            min-height: 3rem;
+            border-top: 1px solid var(--box-border);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 200px 1fr;
+            }
+
+            #sidebar {
+                grid-row: 2;
+                border-right: none;
+                border-bottom: 1px solid var(--box-border);
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+
+            .scene-item {
+                flex-shrink: 0;
+                width: 150px;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="editor-header">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button onclick="location.href='index.html'" style="background: #444;">← 戻る</button>
+            <h2 style="font-size: 1.2rem;">ノベルエディター</h2>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-add-scene" style="background: var(--accent-color); color: #000;">+ シーン追加</button>
+            <button id="btn-play-now">プレビュー</button>
+        </div>
+    </header>
+
+    <aside id="sidebar">
+        <!-- Scenes will be listed here -->
+    </aside>
+
+    <main id="edit-area">
+        <div id="no-scene-msg" style="text-align: center; margin-top: 5rem; color: #666;">
+            シーンがありません。「シーン追加」ボタンを押してください。
+        </div>
+
+        <div id="editor-form" style="display: none;">
+            <div class="form-group">
+                <label>プレビュー</label>
+                <div id="preview" class="preview-box">
+                    <div id="preview-msg" class="preview-text"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>本文テキスト</label>
+                <textarea id="field-text" placeholder="ここに物語を書き込んでください..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>背景画像（URL または assets/パス）</label>
+                <input type="text" id="field-bg" placeholder="https://example.com/image.jpg">
+            </div>
+
+            <div class="form-group">
+                <label>備考（制作者用メモ）</label>
+                <input type="text" id="field-note" placeholder="シーンの意図など">
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import NovelStorage from './js/storage.js';
+
+        let scenes = NovelStorage.load();
+        let activeIdx = scenes.length > 0 ? 0 : -1;
+
+        const sidebar = document.getElementById('sidebar');
+        const editorForm = document.getElementById('editor-form');
+        const noSceneMsg = document.getElementById('no-scene-msg');
+
+        const fieldText = document.getElementById('field-text');
+        const fieldBg = document.getElementById('field-bg');
+        const fieldNote = document.getElementById('field-note');
+        const preview = document.getElementById('preview');
+        const previewMsg = document.getElementById('preview-msg');
+
+        function renderSidebar() {
+            sidebar.innerHTML = '';
+            scenes.forEach((scene, idx) => {
+                const div = document.createElement('div');
+                div.className = `scene-item ${idx === activeIdx ? 'active' : ''}`;
+
+                const title = document.createElement('span');
+                title.textContent = `Scene ${idx + 1}: ${scene.text.substring(0, 10)}...`;
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = '削除';
+                delBtn.className = 'btn-delete';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteScene(idx);
+                };
+
+                div.appendChild(title);
+                div.appendChild(delBtn);
+                div.onclick = () => selectScene(idx);
+                sidebar.appendChild(div);
+            });
+        }
+
+        function selectScene(idx) {
+            activeIdx = idx;
+            renderSidebar();
+            if (activeIdx === -1) {
+                editorForm.style.display = 'none';
+                noSceneMsg.style.display = 'block';
+            } else {
+                editorForm.style.display = 'flex';
+                noSceneMsg.style.display = 'none';
+                const s = scenes[activeIdx];
+                fieldText.value = s.text;
+                fieldBg.value = s.bg;
+                fieldNote.value = s.note;
+                updatePreview();
+            }
+        }
+
+        function updatePreview() {
+            if (activeIdx === -1) return;
+            preview.style.backgroundImage = `url(${fieldBg.value})`;
+            previewMsg.textContent = fieldText.value;
+        }
+
+        function deleteScene(idx) {
+            if (!confirm('このシーンを削除しますか？')) return;
+            scenes.splice(idx, 1);
+            if (activeIdx >= scenes.length) activeIdx = scenes.length - 1;
+            saveData();
+            selectScene(activeIdx);
+        }
+
+        function saveData() {
+            if (activeIdx !== -1) {
+                scenes[activeIdx] = {
+                    text: fieldText.value,
+                    bg: fieldBg.value,
+                    note: fieldNote.value
+                };
+            }
+            NovelStorage.save(scenes);
+        }
+
+        document.getElementById('btn-add-scene').onclick = () => {
+            scenes.push({
+                text: '新しいシーン',
+                bg: '',
+                note: ''
+            });
+            activeIdx = scenes.length - 1;
+            saveData();
+            selectScene(activeIdx);
+        };
+
+        document.getElementById('btn-play-now').onclick = () => {
+            saveData();
+            window.location.href = 'play.html';
+        };
+
+        // Auto save on input
+        [fieldText, fieldBg, fieldNote].forEach(el => {
+            el.oninput = () => {
+                updatePreview();
+                saveData();
+                renderSidebar(); // Update titles in sidebar
+            };
+        });
+
+        // Init
+        selectScene(activeIdx);
+    </script>
+</body>
+
+</html>

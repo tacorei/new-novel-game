@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Novel Maker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.webmanifest">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 100%);
+            overflow: auto; /* Home allows scrolling if needed */
+        }
+        .container {
+            max-width: 600px;
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            color: #aaa;
+        }
+        .menu {
+            display: grid;
+            gap: 1rem;
+        }
+        .menu button {
+            width: 100%;
+            padding: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="fade-in">
+        <div class="container glass">
+            <h1>Visual Novel Maker</h1>
+            <p>
+                あなただけの物語を。ブラウザだけで作成・プレイ。
+                PWA対応でオフラインでも楽しめます。
+            </p>
+            <div class="menu">
+                <button id="btn-play">プレイする</button>
+                <button id="btn-editor">新しく作る / 編集する</button>
+                <button id="btn-sample" style="background: #444;">サンプルを読み込む</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import NovelStorage from './js/storage.js';
+
+        const btnPlay = document.getElementById('btn-play');
+        const btnEditor = document.getElementById('btn-editor');
+        const btnSample = document.getElementById('btn-sample');
+
+        function updatePlayButton() {
+            const data = NovelStorage.load();
+            btnPlay.disabled = data.length === 0;
+            if (data.length === 0) {
+                btnPlay.textContent = 'プレイする（データなし）';
+            } else {
+                btnPlay.textContent = 'プレイする（' + data.length + 'シーン）';
+            }
+        }
+
+        btnPlay.addEventListener('click', () => {
+            window.location.href = 'play.html';
+        });
+
+        btnEditor.addEventListener('click', () => {
+            window.location.href = 'editor.html';
+        });
+
+        btnSample.addEventListener('click', () => {
+            if (confirm('サンプルデータを読み込みますか？現在のデータは上書きされます。')) {
+                NovelStorage.loadSample();
+                updatePlayButton();
+                alert('サンプルを読み込みました。');
+            }
+        });
+
+        // Initialize
+        updatePlayButton();
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed', err));
+            });
+        }
+    </script>
+</body>
+</html>
