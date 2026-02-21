@@ -128,6 +128,7 @@
 
         const scenes = NovelStorage.load();
         let currentIdx = 0;
+        let isTransitioning = false;
 
         const bgImage = document.getElementById('bg-image');
         const textContent = document.getElementById('text-content');
@@ -141,10 +142,18 @@
 
         function renderScene() {
             const scene = scenes[currentIdx];
+            const fadeSeconds = scene.fade || 1.0;
+            const fadeMs = fadeSeconds * 1000;
 
-            // FADEOUT effect before change
+            isTransitioning = true;
+
+            // Set dynamic transition duration
+            overlay.style.transition = `opacity ${fadeSeconds}s`;
+
+            // FADEOUT to black
             overlay.style.opacity = 1;
 
+            // Wait for full black
             setTimeout(() => {
                 // Change Content
                 bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
@@ -157,10 +166,19 @@
 
                 // FADEIN
                 overlay.style.opacity = 0;
-            }, 500);
+            }, fadeMs);
         }
 
+        // Listen for when fade-in is fully finished
+        overlay.ontransitionend = () => {
+            if (overlay.style.opacity === "0") {
+                isTransitioning = false;
+            }
+        };
+
         function next() {
+            if (isTransitioning) return;
+
             currentIdx++;
             if (currentIdx < scenes.length) {
                 renderScene();
@@ -170,11 +188,12 @@
         }
 
         function finish() {
+            isTransitioning = true;
             overlay.style.pointerEvents = 'auto';
             overlay.style.opacity = 1;
             setTimeout(() => {
                 endScreen.style.display = 'block';
-            }, 500);
+            }, 1000);
         }
 
         document.body.onclick = next;

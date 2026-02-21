@@ -285,6 +285,12 @@
                 <label>備考（制作者用メモ）</label>
                 <input type="text" id="field-note" placeholder="シーンの意図など">
             </div>
+
+            <div class="form-group">
+                <label>演出：フェード時間（秒）: <span id="val-fade">1.0</span>s</label>
+                <input type="range" id="field-fade" min="0" max="5" step="0.5" value="1.0">
+                <small style="color: #666; font-size: 0.75rem;">※次のシーンに切り替わる際、暗転・復帰にかかる時間です。</small>
+            </div>
         </div>
     </main>
 
@@ -302,6 +308,8 @@
         const fieldText = document.getElementById('field-text');
         const fieldBg = document.getElementById('field-bg');
         const fieldNote = document.getElementById('field-note');
+        const fieldFade = document.getElementById('field-fade');
+        const valFade = document.getElementById('val-fade');
         const preview = document.getElementById('preview');
         const previewMsg = document.getElementById('preview-msg');
         const fieldFile = document.getElementById('field-file');
@@ -362,6 +370,8 @@
                 fieldText.value = s.text;
                 fieldBg.value = s.bg;
                 fieldNote.value = s.note;
+                fieldFade.value = s.fade || 1.0;
+                valFade.textContent = fieldFade.value;
                 updatePreview();
             }
         }
@@ -385,7 +395,8 @@
                 scenes[activeIdx] = {
                     text: fieldText.value,
                     bg: fieldBg.value,
-                    note: fieldNote.value
+                    note: fieldNote.value,
+                    fade: parseFloat(fieldFade.value) || 1.0
                 };
             }
             NovelStorage.save(scenes);
@@ -408,8 +419,9 @@
         };
 
         // Auto save on input
-        [fieldText, fieldBg, fieldNote].forEach(el => {
+        [fieldText, fieldBg, fieldNote, fieldFade].forEach(el => {
             el.oninput = () => {
+                if (el === fieldFade) valFade.textContent = fieldFade.value;
                 updatePreview();
                 saveData();
                 renderSidebar();
