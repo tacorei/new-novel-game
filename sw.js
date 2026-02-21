@@ -1,19 +1,37 @@
-const CACHE_NAME = 'vn-maker-v1';
+const CACHE_NAME = 'vn-maker-v4';
 const ASSETS = [
     './',
     './index.html',
     './editor.html',
     './play.html',
+    './script.html',
     './css/style.css',
     './js/storage.js',
+    './js/ai.js',
     './manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
+    // 新しいSWがインストールされたらすぐに待機状態をスキップしてアクティブにする
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
         })
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    // アクティブになったら、すぐにすべてのクライアント（タブ）を制御下に置く
+    event.waitUntil(
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then((keys) => {
+                return Promise.all(
+                    keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+                );
+            })
+        ])
     );
 });
 
@@ -30,17 +48,7 @@ self.addEventListener('fetch', (event) => {
                 });
             });
         }).catch(() => {
-            // オフライン時のフォールバックがあればここ
-        })
-    );
-});
-
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-            );
+            // オフライン時のフォールバック
         })
     );
 });

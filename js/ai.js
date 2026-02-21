@@ -1,48 +1,47 @@
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+// Transformers.js を使用したブラウザ内蔵型AI
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+let generator = null;
 
 export const AIHelper = {
-    async callAPI(prompt, apiKey) {
-        if (!apiKey) throw new Error("APIキーが設定されていません。");
+    async init(onProgress) {
+        if (generator) return;
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+        // 軽量な物語生成モデル（約150MB程度の量子化モデル）を使用
+        // ※日本語対応を重視する場合、より大きなモデルが必要になることがありますが、
+        // 動作の軽快さを優先し、一般的な小型モデルをベースにします。
+        generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
+            progress_callback: (p) => {
+                if (onProgress) onProgress(p);
+            }
         });
+    },
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || "AI通信エラーが発生しました。");
+    async callAPI(prompt) {
+        if (!generator) {
+            throw new Error("AIの準備ができていません。init()を先に呼んでください。");
         }
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
+        const output = await generator(prompt, {
+            max_new_tokens: 100,
+            temperature: 0.7,
+            repetition_penalty: 1.2,
+        });
+
+        return output[0].generated_text.replace(prompt, "").trim();
     },
 
     getStoryPrompt(currentText, historyList) {
-        return `
-あなたは熟練のノベルゲームライターです。
-現在、以下の物語が展開されています。
----
-【前までのあらすじ】
-${historyList.slice(-3).join("\n")}
-【現在のシーン】
-${currentText}
----
-この先の「魅力的な展開」を200文字以内で、ノベルゲームのセリフや地の文として1つ提案してください。
-`;
+        // ローカルAI（distilgpt2など）向けにシンプルな英語プロンプト＋指示を与える構成に調整
+        // 本来は日本語モデルが望ましいが、リソース制約のため英語で思考させ、
+        // 日本語で出力するような指示にするか、プロンプト自体を工夫します。
+        return `Finish the story in Japanese.
+History: ${historyList.slice(-2).join(" ")}
+Current: ${currentText}
+Next:`;
     },
 
     getImagePrompt(sceneText) {
-        return `
-あなたはノベルゲームの背景デザイン監督です。
-以下のシーンに最適な、AI画像生成（Stable DiffusionやDALL-E等）で使える英語のプロンプトを作成してください。
-出力は英語のプロンプトのみにしてください。
----
-【シーン】
-${sceneText}
-`;
+        return `Background image description for: ${sceneText}. Stable Diffusion prompt style:`;
     }
 };

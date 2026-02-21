@@ -103,23 +103,34 @@
         .preview-box {
             width: 100%;
             aspect-ratio: 16 / 9;
+            background: #000;
             background-size: cover;
             background-position: center;
             border-radius: 12px;
             border: 1px solid var(--box-border);
-            display: flex;
-            align-items: flex-end;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 5%;
         }
 
         .preview-text {
-            width: 100%;
+            width: 85%;
             background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 1rem;
+            color: #fff;
             font-size: 0.9rem;
-            min-height: 3rem;
-            border-top: 1px solid var(--box-border);
+            min-height: 4rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            line-height: 1.5;
+            white-space: pre-wrap;
         }
 
         .btn-upload {
@@ -136,6 +147,67 @@
 
         .btn-upload:hover {
             background: #555;
+        }
+
+        /* Mode Selection Modal */
+        #mode-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .mode-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--box-border);
+            padding: 2rem;
+            border-radius: 16px;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-card h3 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .mode-card p {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* Sound & Branching */
+        .choice-item {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .choice-item input {
+            flex: 1;
+            font-size: 0.8rem;
+            padding: 0.5rem;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         @media (max-width: 768px) {
@@ -192,6 +264,21 @@
 </head>
 
 <body>
+    <div id="mode-overlay">
+        <h2 style="margin-bottom: 0.5rem;">制作モードを選択</h2>
+        <p style="color: #888; margin-bottom: 2rem;">いつでも切り替え可能です</p>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+            <div class="mode-card" id="mode-ai">
+                <h3>✨ AIアシスト</h3>
+                <p>Gemini AIと一緒にプロットや背景プロンプトを作りながら進めるモード</p>
+            </div>
+            <div class="mode-card" id="mode-standard">
+                <h3>🛠️ スタンダード</h3>
+                <p>自分でじっくり物語や音響、分岐を設定するこだわりモード</p>
+            </div>
+        </div>
+    </div>
+
     <header class="editor-header">
         <div style="display: flex; align-items: center; gap: 2rem; width: 100%; max-width: 1200px; margin: 0 auto;">
             <button onclick="location.href='index.html'"
@@ -199,17 +286,29 @@
                 ページに戻る</button>
             <h2 style="font-size: 1.2rem; flex-grow: 1; text-align: center;">ノベルエディター</h2>
             <div style="display: flex; gap: 0.5rem;">
+                <button id="btn-export" style="background: rgba(255,255,255,0.05); font-size: 0.8rem;">📥 保存</button>
+                <label
+                    style="background: rgba(255,255,255,0.05); border: 1px solid var(--box-border); padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+                    📤 読込
+                    <input type="file" id="btn-import" accept=".json" style="display: none;">
+                </label>
+                <div style="width: 1px; background: var(--box-border); margin: 0 0.5rem;"></div>
                 <label class="btn-primary"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
-                    📷 一括作成
+                    style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
+                    📷 一括
                     <input type="file" id="btn-bulk-upload" accept="image/*" multiple style="display: none;">
                 </label>
                 <button id="btn-ai-assist"
                     style="background: linear-gradient(45deg, #6200ea, #03dac6); color: #fff; font-size: 0.8rem;">✨
-                    AIアシスト</button>
+                    AI</button>
+                <button onclick="location.href='script.html'"
+                    style="background: rgba(255,255,255,0.05); font-size: 0.8rem; border: 1px solid var(--box-border);">📄
+                    台本</button>
                 <button id="btn-add-scene" style="background: var(--accent-color); color: #000; font-size: 0.8rem;">+
-                    シーン追加</button>
-                <button id="btn-play-now" style="font-size: 0.8rem;">プレビュー</button>
+                    追加</button>
+                <button id="btn-play-now" style="font-size: 0.8rem;">再生</button>
+                <button id="btn-switch-mode" style="background: transparent; color: #666; font-size: 0.7rem;">⚡
+                    モード切替</button>
             </div>
         </div>
     </header>
@@ -218,14 +317,16 @@
     <div id="ai-dialog" class="glass fade-in" style="background: #1a1a2e; border: 1px solid var(--accent-color);">
         <h3 style="margin-bottom: 0.5rem; color: var(--accent-color);">AI制作アシスタント</h3>
         <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 1rem;">
-            Google Gemini API を使用して、物語の構成や画像のプロンプト作成をサポートします。
+            ブラウザ内蔵AIを使用して、物語の構成や画像のプロンプト作成をサポートします。
+            <br><span style="color:var(--accent-color);">※初回のみAI（約150MB）のロードに時間がかかります。</span>
         </p>
 
-        <div class="form-group">
-            <label>Gemini API Key</label>
-            <input type="password" id="ai-api-key" placeholder="AIキーを入力（ブラウザにのみ保存されます）" style="font-size: 0.8rem;">
-            <small style="color: #666;"><a href="https://aistudio.google.com/app/apikey"
-                    target="_blank">キーを取得する</a></small>
+        <div id="ai-init-progress" style="margin-bottom: 1rem; display: none;">
+            <div style="font-size: 0.75rem; margin-bottom: 0.3rem;">AIを準備中... <span id="ai-progress-val">0</span>%</div>
+            <div style="width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+                <div id="ai-progress-bar"
+                    style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s;"></div>
+            </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -281,6 +382,20 @@
                 <small style="color: #666; font-size: 0.75rem;">※ファイルを選択するとDataURLとして自動保存されます。</small>
             </div>
 
+            <div class="form-group std-only">
+                <label>BGM / SE（音声URL）</label>
+                <input type="text" id="field-audio" placeholder="https://example.com/bgm.mp3">
+            </div>
+
+            <div class="form-group std-only">
+                <label>選択肢分岐（テキスト, 移動先シーン番号）</label>
+                <div id="choices-container">
+                    <!-- Choices will be added here -->
+                </div>
+                <button id="btn-add-choice" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
+                    選択肢を追加</button>
+            </div>
+
             <div class="form-group">
                 <label>備考（制作者用メモ）</label>
                 <input type="text" id="field-note" placeholder="シーンの意図など">
@@ -300,6 +415,7 @@
 
         let scenes = NovelStorage.load();
         let activeIdx = scenes.length > 0 ? 0 : -1;
+        let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
 
         const sidebar = document.getElementById('sidebar');
         const editorForm = document.getElementById('editor-form');
@@ -310,6 +426,9 @@
         const fieldNote = document.getElementById('field-note');
         const fieldFade = document.getElementById('field-fade');
         const valFade = document.getElementById('val-fade');
+        const fieldAudio = document.getElementById('field-audio');
+        const choicesContainer = document.getElementById('choices-container');
+
         const preview = document.getElementById('preview');
         const previewMsg = document.getElementById('preview-msg');
         const fieldFile = document.getElementById('field-file');
@@ -317,6 +436,13 @@
         const btnPlayNow = document.getElementById('btn-play-now');
         const btnBulkUpload = document.getElementById('btn-bulk-upload');
         const btnAiAssist = document.getElementById('btn-ai-assist');
+        const btnExport = document.getElementById('btn-export');
+        const btnImport = document.getElementById('btn-import');
+        const btnSwitchMode = document.getElementById('btn-switch-mode');
+        const btnAddChoice = document.getElementById('btn-add-choice');
+
+        // Mode DOM
+        const modeOverlay = document.getElementById('mode-overlay');
 
         // AI DOM elements
         const aiOverlay = document.getElementById('ai-overlay');
@@ -328,10 +454,27 @@
         const btnAiApply = document.getElementById('btn-ai-apply');
         const aiResult = document.getElementById('ai-result');
         const aiLoading = document.getElementById('ai-loading');
+        const aiInitProgress = document.getElementById('ai-init-progress');
+        const aiProgressVal = document.getElementById('ai-progress-val');
+        const aiProgressBar = document.getElementById('ai-progress-bar');
 
-        // Load API Key
-        aiApiKey.value = localStorage.getItem('gemini_api_key') || '';
-        aiApiKey.onchange = () => localStorage.setItem('gemini_api_key', aiApiKey.value);
+        function applyMode() {
+            document.querySelectorAll('.std-only').forEach(el => {
+                if (currentMode === 'standard') el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+            if (currentMode === 'standard') {
+                btnAiAssist.classList.add('hidden');
+            } else {
+                btnAiAssist.classList.remove('hidden');
+            }
+            localStorage.setItem('editor_mode', currentMode);
+        }
+
+        // Mode events
+        document.getElementById('mode-ai').onclick = () => { currentMode = 'ai'; applyMode(); modeOverlay.style.display = 'none'; };
+        document.getElementById('mode-standard').onclick = () => { currentMode = 'standard'; applyMode(); modeOverlay.style.display = 'none'; };
+        btnSwitchMode.onclick = () => modeOverlay.style.display = 'flex';
 
         function renderSidebar() {
             sidebar.innerHTML = '';
@@ -372,9 +515,33 @@
                 fieldNote.value = s.note;
                 fieldFade.value = s.fade || 1.0;
                 valFade.textContent = fieldFade.value;
+                fieldAudio.value = s.audio || '';
+
+                // Load choices
+                choicesContainer.innerHTML = '';
+                (s.choices || []).forEach(c => addChoiceField(c.text, c.target));
+
                 updatePreview();
             }
         }
+
+        function addChoiceField(txt = '', tgt = '') {
+            const div = document.createElement('div');
+            div.className = 'choice-item';
+            div.innerHTML = `
+                <input type="text" placeholder="選択肢テキスト" value="${txt}" class="choice-text">
+                <input type="number" placeholder="ジャンプ先番号" value="${tgt}" class="choice-target" style="width: 80px;">
+                <button style="background:transparent; color:#ff4d4d; padding:0 0.5rem;" onclick="this.parentElement.remove(); saveData();">×</button>
+            `;
+            const inputs = div.querySelectorAll('input');
+            inputs.forEach(i => i.oninput = saveData);
+            choicesContainer.appendChild(div);
+        }
+
+        btnAddChoice.onclick = () => {
+            addChoiceField();
+            saveData();
+        };
 
         function updatePreview() {
             if (activeIdx === -1) return;
@@ -392,11 +559,21 @@
 
         function saveData() {
             if (activeIdx !== -1) {
+                const choices = [];
+                document.querySelectorAll('.choice-item').forEach(item => {
+                    choices.push({
+                        text: item.querySelector('.choice-text').value,
+                        target: parseInt(item.querySelector('.choice-target').value) || 0
+                    });
+                });
+
                 scenes[activeIdx] = {
                     text: fieldText.value,
                     bg: fieldBg.value,
                     note: fieldNote.value,
-                    fade: parseFloat(fieldFade.value) || 1.0
+                    fade: parseFloat(fieldFade.value) || 1.0,
+                    audio: fieldAudio.value,
+                    choices: choices
                 };
             }
             NovelStorage.save(scenes);
@@ -406,7 +583,10 @@
             scenes.push({
                 text: '新しいシーン',
                 bg: '',
-                note: ''
+                note: '',
+                fade: 1.0,
+                audio: '',
+                choices: []
             });
             activeIdx = scenes.length - 1;
             saveData();
@@ -418,8 +598,44 @@
             window.location.href = 'play.html';
         };
 
+        // Export
+        btnExport.onclick = () => {
+            const dataStr = JSON.stringify(scenes, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `novel_project_${new Date().getTime()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // Import
+        btnImport.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (Array.isArray(data)) {
+                        scenes = data;
+                        saveData();
+                        activeIdx = 0;
+                        selectScene(0);
+                        alert('インポート完了しました！');
+                    } else {
+                        throw new Error('不正な形式です。');
+                    }
+                } catch (err) {
+                    alert('エラー: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+
         // Auto save on input
-        [fieldText, fieldBg, fieldNote, fieldFade].forEach(el => {
+        [fieldText, fieldBg, fieldNote, fieldFade, fieldAudio].forEach(el => {
             el.oninput = () => {
                 if (el === fieldFade) valFade.textContent = fieldFade.value;
                 updatePreview();
@@ -454,7 +670,10 @@
                         resolve({
                             text: `${file.name.split('.')[0]}のシーン`,
                             bg: ev.target.result,
-                            note: `${file.name} から自動生成`
+                            note: `${file.name} から自動生成`,
+                            fade: 1.0,
+                            audio: '',
+                            choices: []
                         });
                     };
                     reader.readAsDataURL(file);
@@ -469,11 +688,28 @@
         };
 
         // AI Assistant Events
-        btnAiAssist.onclick = () => {
+        btnAiAssist.onclick = async () => {
             aiOverlay.style.display = 'block';
             aiDialog.style.display = 'flex';
             aiResult.style.display = 'none';
             btnAiApply.style.display = 'none';
+
+            // AIの初期化（ダウンロード開始）
+            aiInitProgress.style.display = 'block';
+            try {
+                await AIHelper.init((p) => {
+                    if (p.status === 'progress') {
+                        aiProgressVal.textContent = Math.round(p.progress);
+                        aiProgressBar.style.width = p.progress + '%';
+                    }
+                    if (p.status === 'ready' || p.status === 'done') {
+                        aiInitProgress.style.display = 'none';
+                    }
+                });
+                aiInitProgress.style.display = 'none';
+            } catch (err) {
+                alert('AIの初期化に失敗しました: ' + err.message);
+            }
         };
 
         btnAiClose.onclick = () => {
@@ -482,9 +718,6 @@
         };
 
         async function handleAI(type) {
-            const key = aiApiKey.value;
-            if (!key) { alert('APIキーを入力してください。'); return; }
-
             aiLoading.style.display = 'block';
             aiResult.style.display = 'none';
 
@@ -497,7 +730,7 @@
                     prompt = AIHelper.getImagePrompt(fieldText.value);
                 }
 
-                const result = await AIHelper.callAPI(prompt, key);
+                const result = await AIHelper.callAPI(prompt);
                 aiResult.value = result;
                 aiResult.style.display = 'block';
                 if (type === 'script') btnAiApply.style.display = 'block';
@@ -519,6 +752,10 @@
         };
 
         // Init
+        applyMode();
+        if (scenes.length === 0) {
+            modeOverlay.style.display = 'flex';
+        }
         selectScene(activeIdx);
     </script>
 </body>
