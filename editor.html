@@ -64,12 +64,28 @@
         #edit-area {
             padding: 2rem;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            max-width: 900px;
-            margin: 0 auto;
             width: 100%;
+        }
+
+        #editor-form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* PC: 2column layout */
+        @media (min-width: 1200px) {
+            #editor-form {
+                grid-template-columns: 1fr 1fr;
+                align-items: start;
+            }
+
+            .sticky-preview {
+                position: sticky;
+                top: 0;
+            }
         }
 
         .form-group {
@@ -321,11 +337,16 @@
             <br><span style="color:var(--accent-color);">※初回のみAI（約150MB）のロードに時間がかかります。</span>
         </p>
 
-        <div id="ai-init-progress" style="margin-bottom: 1rem; display: none;">
-            <div style="font-size: 0.75rem; margin-bottom: 0.3rem;">AIを準備中... <span id="ai-progress-val">0</span>%</div>
-            <div style="width: 100%; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+        <div id="ai-init-progress"
+            style="margin-bottom: 1rem; display: none; background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.5rem;">
+                <span id="ai-progress-status" style="color: #888;">AIデータを取得中...</span>
+                <span style="color: var(--accent-color); font-weight: bold;"><span id="ai-progress-val">0</span>%</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
                 <div id="ai-progress-bar"
-                    style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s;"></div>
+                    style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-color), #fff); transition: width 0.2s;">
+                </div>
             </div>
         </div>
 
@@ -357,56 +378,59 @@
         </div>
 
         <div id="editor-form" style="display: none;">
-            <div class="form-group">
-                <label>プレビュー</label>
-                <div id="preview" class="preview-box">
-                    <div id="preview-msg" class="preview-text"></div>
+            <div class="sticky-preview">
+                <div class="form-group">
+                    <label>プレビュー</label>
+                    <div id="preview" class="preview-box">
+                        <div id="preview-msg" class="preview-text"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>本文テキスト</label>
-                <textarea id="field-text" placeholder="ここに物語を書き込んでください..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>背景画像（URL または ファイル選択）</label>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <input type="text" id="field-bg" placeholder="https://example.com/image.jpg"
-                        style="flex: 1; min-width: 200px;">
-                    <label class="btn-upload">
-                        ファイルを選択
-                        <input type="file" id="field-file" accept="image/*" style="display: none;">
-                    </label>
+            <div class="editor-fields">
+                <div class="form-group">
+                    <label>本文テキスト</label>
+                    <textarea id="field-text" placeholder="ここに物語を書き込んでください..."></textarea>
                 </div>
-                <small style="color: #666; font-size: 0.75rem;">※ファイルを選択するとDataURLとして自動保存されます。</small>
-            </div>
 
-            <div class="form-group std-only">
-                <label>BGM / SE（音声URL）</label>
-                <input type="text" id="field-audio" placeholder="https://example.com/bgm.mp3">
-            </div>
-
-            <div class="form-group std-only">
-                <label>選択肢分岐（テキスト, 移動先シーン番号）</label>
-                <div id="choices-container">
-                    <!-- Choices will be added here -->
+                <div class="form-group">
+                    <label>背景画像（URL または ファイル選択）</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="text" id="field-bg" placeholder="https://example.com/image.jpg"
+                            style="flex: 1; min-width: 200px;">
+                        <label class="btn-upload">
+                            ファイルを選択
+                            <input type="file" id="field-file" accept="image/*" style="display: none;">
+                        </label>
+                    </div>
+                    <small style="color: #666; font-size: 0.75rem;">※ファイルを選択するとDataURLとして自動保存されます。</small>
                 </div>
-                <button id="btn-add-choice" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
-                    選択肢を追加</button>
-            </div>
 
-            <div class="form-group">
-                <label>備考（制作者用メモ）</label>
-                <input type="text" id="field-note" placeholder="シーンの意図など">
-            </div>
+                <div class="form-group std-only">
+                    <label>BGM / SE（音声URL）</label>
+                    <input type="text" id="field-audio" placeholder="https://example.com/bgm.mp3">
+                </div>
 
-            <div class="form-group">
-                <label>演出：フェード時間（秒）: <span id="val-fade">1.0</span>s</label>
-                <input type="range" id="field-fade" min="0" max="5" step="0.5" value="1.0">
-                <small style="color: #666; font-size: 0.75rem;">※次のシーンに切り替わる際、暗転・復帰にかかる時間です。</small>
+                <div class="form-group std-only">
+                    <label>選択肢分岐（テキスト, 移動先シーン番号）</label>
+                    <div id="choices-container">
+                        <!-- Choices will be added here -->
+                    </div>
+                    <button id="btn-add-choice" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
+                        選択肢を追加</button>
+                </div>
+
+                <div class="form-group">
+                    <label>備考（制作者用メモ）</label>
+                    <input type="text" id="field-note" placeholder="シーンの意図など">
+                </div>
+
+                <div class="form-group">
+                    <label>演出：フェード時間（秒）: <span id="val-fade">1.0</span>s</label>
+                    <input type="range" id="field-fade" min="0" max="5" step="0.5" value="1.0">
+                    <small style="color: #666; font-size: 0.75rem;">※次のシーンに切り替わる際、暗転・復帰にかかる時間です。</small>
+                </div>
             </div>
-        </div>
     </main>
 
     <script type="module">
@@ -457,6 +481,7 @@
         const aiInitProgress = document.getElementById('ai-init-progress');
         const aiProgressVal = document.getElementById('ai-progress-val');
         const aiProgressBar = document.getElementById('ai-progress-bar');
+        const aiProgressStatus = document.getElementById('ai-progress-status');
 
         function applyMode() {
             document.querySelectorAll('.std-only').forEach(el => {
@@ -703,23 +728,27 @@
 
             try {
                 await AIHelper.init((p) => {
+                    if (p.status === 'initiate') {
+                        aiProgressStatus.textContent = '初期化中...';
+                    }
                     if (p.status === 'progress') {
+                        aiProgressStatus.textContent = `ダウンロード中: ${p.file.split('/').pop()}`;
                         aiProgressVal.textContent = Math.round(p.progress);
                         aiProgressBar.style.width = p.progress + '%';
                     }
                     if (p.status === 'ready' || p.status === 'done') {
-                        aiInitProgress.style.display = 'none';
-                        btnAiScript.disabled = false;
-                        btnAiGenImg.disabled = false;
-                        btnAiScript.style.opacity = "1";
-                        btnAiGenImg.style.opacity = "1";
+                        aiProgressStatus.textContent = '準備完了！';
+                        aiProgressVal.textContent = '100';
+                        aiProgressBar.style.width = '100%';
+                        setTimeout(() => {
+                            aiInitProgress.style.display = 'none';
+                            btnAiScript.disabled = false;
+                            btnAiGenImg.disabled = false;
+                            btnAiScript.style.opacity = "1";
+                            btnAiGenImg.style.opacity = "1";
+                        }, 500);
                     }
                 });
-                aiInitProgress.style.display = 'none';
-                btnAiScript.disabled = false;
-                btnAiGenImg.disabled = false;
-                btnAiScript.style.opacity = "1";
-                btnAiGenImg.style.opacity = "1";
             } catch (err) {
                 alert('AIの初期化に失敗しました: ' + err.message);
             }

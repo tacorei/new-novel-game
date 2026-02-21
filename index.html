@@ -56,13 +56,21 @@
         <div class="container glass">
             <h1>Visual Novel Maker</h1>
             <p>
-                あなただけの物語を。ブラウザだけで作成・プレイ。
-                PWA対応でオフラインでも楽しめます。
+                あなただけの物語を。作品が増えても安心の管理システム。
             </p>
+
+            <div id="project-list-section" style="margin-bottom: 2rem; text-align: left;">
+                <h3 style="font-size: 1rem; color: var(--accent-color); margin-bottom: 1rem;">作品一覧</h3>
+                <div id="project-list"
+                    style="display: grid; gap: 0.8rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
+                    <!-- Projects will be listed here -->
+                </div>
+            </div>
+
             <div class="menu">
-                <button id="btn-play">プレイする</button>
-                <button id="btn-editor">新しく作る / 編集する</button>
-                <button id="btn-sample" style="background: #444;">サンプルを読み込む</button>
+                <button id="btn-new" style="background: var(--primary-color);">✨ 新しい作品を作る</button>
+                <button id="btn-sample" style="background: #333; font-size: 0.8rem; margin-top: 0.5rem;">🎁
+                    サンプルを読み込む</button>
             </div>
         </div>
     </div>
@@ -70,38 +78,95 @@
     <script type="module">
         import NovelStorage from './js/storage.js';
 
-        const btnPlay = document.getElementById('btn-play');
-        const btnEditor = document.getElementById('btn-editor');
+        const projectList = document.getElementById('project-list');
+        const btnNew = document.getElementById('btn-new');
         const btnSample = document.getElementById('btn-sample');
 
-        function updatePlayButton() {
-            const data = NovelStorage.load();
-            btnPlay.disabled = data.length === 0;
-            if (data.length === 0) {
-                btnPlay.textContent = 'プレイする（データなし）';
-            } else {
-                btnPlay.textContent = 'プレイする（' + data.length + 'シーン）';
+        function renderProjects() {
+            const projects = NovelStorage.getProjects();
+            const activeId = NovelStorage.getActiveProjectId();
+
+            projectList.innerHTML = '';
+
+            if (projects.length === 0) {
+                projectList.innerHTML = '<p style="text-align:center; font-size: 0.8rem; color:#666;">作品がまだありません</p>';
+                return;
             }
+
+            projects.forEach(p => {
+                const item = document.createElement('div');
+                item.style = `
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid ${p.id === activeId ? 'var(--accent-color)' : 'var(--box-border)'};
+                    padding: 1rem;
+                    border-radius: 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    box-shadow: ${p.id === activeId ? '0 0 15px rgba(0, 243, 255, 0.2)' : 'none'};
+                `;
+
+                item.innerHTML = `
+                    <div>
+                        <div style="font-weight: bold; font-size: 0.95rem; color: #fff;">${p.name}</div>
+                        <div style="font-size: 0.7rem; color: #666; margin-top: 0.2rem;">最終更新: ${new Date(p.updatedAt).toLocaleString()}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn-edit" data-id="${p.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">編集</button>
+                        <button class="btn-play" data-id="${p.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; background: var(--accent-color); color: black;">プレイ</button>
+                        <button class="btn-del" data-id="${p.id}" style="padding: 0.4rem; font-size: 0.75rem; background: transparent; color: #666; width: auto; border: none;">🗑</button>
+                    </div>
+                `;
+
+                item.onclick = () => {
+                    NovelStorage.setActiveProjectId(p.id);
+                    renderProjects();
+                };
+
+                const editBtn = item.querySelector('.btn-edit');
+                editBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    NovelStorage.setActiveProjectId(p.id);
+                    window.location.href = 'editor.html';
+                };
+
+                const playBtn = item.querySelector('.btn-play');
+                playBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    NovelStorage.setActiveProjectId(p.id);
+                    window.location.href = 'play.html';
+                };
+
+                const delBtn = item.querySelector('.btn-del');
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${p.name}」を削除してもよろしいですか？`)) {
+                        NovelStorage.deleteProject(p.id);
+                        renderProjects();
+                    }
+                };
+
+                projectList.appendChild(item);
+            });
         }
 
-        btnPlay.addEventListener('click', () => {
-            window.location.href = 'play.html';
-        });
-
-        btnEditor.addEventListener('click', () => {
-            window.location.href = 'editor.html';
-        });
-
-        btnSample.addEventListener('click', () => {
-            if (confirm('サンプルデータを読み込みますか？現在のデータは上書きされます。')) {
-                NovelStorage.loadSample();
-                updatePlayButton();
-                alert('サンプルを読み込みました。');
+        btnNew.onclick = () => {
+            const name = prompt('作品名を入力してください', '無題の物語');
+            if (name) {
+                NovelStorage.createProject(name);
+                window.location.href = 'editor.html';
             }
-        });
+        };
+
+        btnSample.onclick = () => {
+            NovelStorage.loadSample();
+            renderProjects();
+        };
 
         // Initialize
-        updatePlayButton();
+        renderProjects();
 
         // Register Service Worker
         if ('serviceWorker' in navigator) {
