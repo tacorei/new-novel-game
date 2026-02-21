@@ -696,6 +696,11 @@
 
             // AIの初期化（ダウンロード開始）
             aiInitProgress.style.display = 'block';
+            btnAiScript.disabled = true;
+            btnAiGenImg.disabled = true;
+            btnAiScript.style.opacity = "0.5";
+            btnAiGenImg.style.opacity = "0.5";
+
             try {
                 await AIHelper.init((p) => {
                     if (p.status === 'progress') {
@@ -704,9 +709,17 @@
                     }
                     if (p.status === 'ready' || p.status === 'done') {
                         aiInitProgress.style.display = 'none';
+                        btnAiScript.disabled = false;
+                        btnAiGenImg.disabled = false;
+                        btnAiScript.style.opacity = "1";
+                        btnAiGenImg.style.opacity = "1";
                     }
                 });
                 aiInitProgress.style.display = 'none';
+                btnAiScript.disabled = false;
+                btnAiGenImg.disabled = false;
+                btnAiScript.style.opacity = "1";
+                btnAiGenImg.style.opacity = "1";
             } catch (err) {
                 alert('AIの初期化に失敗しました: ' + err.message);
             }

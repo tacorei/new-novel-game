@@ -36,19 +36,27 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // 開発中 (localhost) は常にネットワークを優先し、キャッシュを回避する設定
+    const isLocalhost = event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1');
+
+    if (isLocalhost) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request).then((fetchResponse) => {
-                return caches.open(CACHE_NAME).then((cache) => {
-                    // 動的にリソース（画像など）をキャッシュ
-                    if (event.request.url.startsWith('http') || event.request.url.includes('assets/')) {
-                        cache.put(event.request, fetchResponse.clone());
-                    }
-                    return fetchResponse;
+        fetch(event.request).then((response) => {
+            // ネットワークから取得できた場合はキャッシュを更新して返す (Network First)
+            if (response && response.status === 200) {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseClone);
                 });
-            });
+            }
+            return response;
         }).catch(() => {
-            // オフライン時のフォールバック
+            // オフライン時はキャッシュから返す
+            return caches.match(event.request);
         })
     );
 });
