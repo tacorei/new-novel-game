@@ -117,19 +117,21 @@
         }
 
         .preview-box {
-            width: 100%;
+            width: 70%;
+            margin: 0 auto 1.5rem;
             aspect-ratio: 16 / 9;
             background: #000;
             background-size: cover;
             background-position: center;
             border-radius: 12px;
-            border: 1px solid var(--box-border);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: flex-end;
             justify-content: center;
             padding-bottom: 5%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(98, 0, 234, 0.1);
         }
 
         .preview-text {
@@ -407,8 +409,28 @@
                 </div>
 
                 <div class="form-group std-only">
-                    <label>BGM / SE（音声URL）</label>
-                    <input type="text" id="field-audio" placeholder="https://example.com/bgm.mp3">
+                    <label>BGM（ループ再生）</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="field-audio" placeholder="https://example.com/bgm.mp3" style="flex: 1;">
+                        <button type="button" onclick="testAudio(document.getElementById('field-audio').value)"
+                            style="background: #333; font-size: 0.8rem;">▶ 試聴</button>
+                    </div>
+                    <small
+                        style="color: #666; font-size: 0.75rem;">※空欄にすると前のシーンから継続。停止したい場合は「停止」と入力するか専用設定（後述予定）を使用してください。</small>
+                </div>
+
+                <div class="form-group std-only">
+                    <label>効果音 (SE / 1回再生)</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="text" id="field-se" placeholder="https://example.com/se.mp3"
+                            style="flex: 1; min-width: 200px;">
+                        <label class="btn-upload" style="padding: 0.6rem;">
+                            選択
+                            <input type="file" id="field-se-file" accept="audio/*" style="display: none;">
+                        </label>
+                        <button type="button" onclick="testAudio(document.getElementById('field-se').value)"
+                            style="background: #333; font-size: 0.8rem;">▶ 試聴</button>
+                    </div>
                 </div>
 
                 <div class="form-group std-only">
@@ -451,6 +473,8 @@
         const fieldFade = document.getElementById('field-fade');
         const valFade = document.getElementById('val-fade');
         const fieldAudio = document.getElementById('field-audio');
+        const fieldSe = document.getElementById('field-se');
+        const fieldSeFile = document.getElementById('field-se-file');
         const choicesContainer = document.getElementById('choices-container');
 
         const preview = document.getElementById('preview');
@@ -541,6 +565,7 @@
                 fieldFade.value = s.fade || 1.0;
                 valFade.textContent = fieldFade.value;
                 fieldAudio.value = s.audio || '';
+                fieldSe.value = s.se || '';
 
                 // Load choices
                 choicesContainer.innerHTML = '';
@@ -598,6 +623,7 @@
                     note: fieldNote.value,
                     fade: parseFloat(fieldFade.value) || 1.0,
                     audio: fieldAudio.value,
+                    se: fieldSe.value,
                     choices: choices
                 };
             }
@@ -611,6 +637,7 @@
                 note: '',
                 fade: 1.0,
                 audio: '',
+                se: '',
                 choices: []
             });
             activeIdx = scenes.length - 1;
@@ -660,7 +687,7 @@
         };
 
         // Auto save on input
-        [fieldText, fieldBg, fieldNote, fieldFade, fieldAudio].forEach(el => {
+        [fieldText, fieldBg, fieldNote, fieldFade, fieldAudio, fieldSe].forEach(el => {
             el.oninput = () => {
                 if (el === fieldFade) valFade.textContent = fieldFade.value;
                 updatePreview();
@@ -668,6 +695,14 @@
                 renderSidebar();
             };
         });
+
+        // Audio Test Helper
+        window.testAudio = (url) => {
+            if (!url) return alert('音声URLが空です。');
+            const a = new Audio(url);
+            a.volume = 0.5;
+            a.play().catch(e => alert('再生エラー: ' + e.message));
+        };
 
         // File upload handling
         fieldFile.onchange = (e) => {
@@ -678,6 +713,19 @@
             reader.onload = (event) => {
                 fieldBg.value = event.target.result;
                 updatePreview();
+                saveData();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // SE upload handling
+        fieldSeFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                fieldSe.value = event.target.result;
                 saveData();
             };
             reader.readAsDataURL(file);

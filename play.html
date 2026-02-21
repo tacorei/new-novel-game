@@ -199,14 +199,25 @@
                 bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
                 textContent.textContent = scene.text;
 
-                // Audio handling
-                if (scene.audio) {
-                    if (!bgm || bgm.src !== scene.audio) {
+                // Audio handling (BGM)
+                if (scene.audio === '停止' || scene.audio === 'stop') {
+                    if (bgm) {
+                        bgm.pause();
+                        bgm = null;
+                    }
+                } else if (scene.audio) {
+                    if (!bgm || bgm.src !== new URL(scene.audio, window.location.href).href) {
                         if (bgm) bgm.pause();
                         bgm = new Audio(scene.audio);
                         bgm.loop = true;
-                        bgm.play().catch(e => console.log("Audio play blocked", e));
+                        bgm.play().catch(e => console.log("BGM play blocked", e));
                     }
+                }
+
+                // Audio handling (SE)
+                if (scene.se) {
+                    const se = new Audio(scene.se);
+                    se.play().catch(e => console.log("SE play blocked", e));
                 }
 
                 // Restart zoom animation to avoid jump
