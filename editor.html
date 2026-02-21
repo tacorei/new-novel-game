@@ -144,6 +144,32 @@
                 grid-template-rows: auto 200px 1fr;
             }
 
+            /* AI Dialog Styles */
+            #ai-dialog {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 500px;
+                z-index: 1000;
+                padding: 2rem;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            #ai-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 999;
+            }
+
             #sidebar {
                 grid-row: 2;
                 border-right: none;
@@ -173,11 +199,52 @@
                 ページに戻る</button>
             <h2 style="font-size: 1.2rem; flex-grow: 1; text-align: center;">ノベルエディター</h2>
             <div style="display: flex; gap: 0.5rem;">
-                <button id="btn-add-scene" style="background: var(--accent-color); color: #000;">+ シーン追加</button>
-                <button id="btn-play-now">プレビュー</button>
+                <label class="btn-primary"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
+                    📷 一括作成
+                    <input type="file" id="btn-bulk-upload" accept="image/*" multiple style="display: none;">
+                </label>
+                <button id="btn-ai-assist"
+                    style="background: linear-gradient(45deg, #6200ea, #03dac6); color: #fff; font-size: 0.8rem;">✨
+                    AIアシスト</button>
+                <button id="btn-add-scene" style="background: var(--accent-color); color: #000; font-size: 0.8rem;">+
+                    シーン追加</button>
+                <button id="btn-play-now" style="font-size: 0.8rem;">プレビュー</button>
             </div>
         </div>
     </header>
+
+    <div id="ai-overlay"></div>
+    <div id="ai-dialog" class="glass fade-in" style="background: #1a1a2e; border: 1px solid var(--accent-color);">
+        <h3 style="margin-bottom: 0.5rem; color: var(--accent-color);">AI制作アシスタント</h3>
+        <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 1rem;">
+            Google Gemini API を使用して、物語の構成や画像のプロンプト作成をサポートします。
+        </p>
+
+        <div class="form-group">
+            <label>Gemini API Key</label>
+            <input type="password" id="ai-api-key" placeholder="AIキーを入力（ブラウザにのみ保存されます）" style="font-size: 0.8rem;">
+            <small style="color: #666;"><a href="https://aistudio.google.com/app/apikey"
+                    target="_blank">キーを取得する</a></small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <button id="btn-ai-script" style="background: #333;">📜 次の展開を提案</button>
+            <button id="btn-ai-gen-img" style="background: #333;">🎨 画像プロンプト作成</button>
+        </div>
+
+        <div id="ai-loading" style="display: none; text-align: center; font-size: 0.8rem; color: var(--accent-color);">
+            思考中...
+        </div>
+
+        <textarea id="ai-result" readonly style="margin-top: 1rem; font-size: 0.85rem; height: 100px; display: none;"
+            placeholder="AIの結果がここに表示されます"></textarea>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+            <button id="btn-ai-close" style="background: transparent; color: #888;">閉じる</button>
+            <button id="btn-ai-apply" style="display: none; background: var(--primary-color);">結果を適用</button>
+        </div>
+    </div>
 
     <aside id="sidebar">
         <!-- Scenes will be listed here -->
@@ -223,6 +290,7 @@
 
     <script type="module">
         import NovelStorage from './js/storage.js';
+        import { AIHelper } from './js/ai.js';
 
         let scenes = NovelStorage.load();
         let activeIdx = scenes.length > 0 ? 0 : -1;
@@ -236,8 +304,26 @@
         const fieldNote = document.getElementById('field-note');
         const preview = document.getElementById('preview');
         const previewMsg = document.getElementById('preview-msg');
-
         const fieldFile = document.getElementById('field-file');
+
+        const btnPlayNow = document.getElementById('btn-play-now');
+        const btnBulkUpload = document.getElementById('btn-bulk-upload');
+        const btnAiAssist = document.getElementById('btn-ai-assist');
+
+        // AI DOM elements
+        const aiOverlay = document.getElementById('ai-overlay');
+        const aiDialog = document.getElementById('ai-dialog');
+        const aiApiKey = document.getElementById('ai-api-key');
+        const btnAiScript = document.getElementById('btn-ai-script');
+        const btnAiGenImg = document.getElementById('btn-ai-gen-img');
+        const btnAiClose = document.getElementById('btn-ai-close');
+        const btnAiApply = document.getElementById('btn-ai-apply');
+        const aiResult = document.getElementById('ai-result');
+        const aiLoading = document.getElementById('ai-loading');
+
+        // Load API Key
+        aiApiKey.value = localStorage.getItem('gemini_api_key') || '';
+        aiApiKey.onchange = () => localStorage.setItem('gemini_api_key', aiApiKey.value);
 
         function renderSidebar() {
             sidebar.innerHTML = '';
@@ -316,7 +402,7 @@
             selectScene(activeIdx);
         };
 
-        document.getElementById('btn-play-now').onclick = () => {
+        btnPlayNow.onclick = () => {
             saveData();
             window.location.href = 'play.html';
         };
@@ -326,7 +412,7 @@
             el.oninput = () => {
                 updatePreview();
                 saveData();
-                renderSidebar(); // Update titles in sidebar
+                renderSidebar();
             };
         });
 
@@ -342,6 +428,82 @@
                 saveData();
             };
             reader.readAsDataURL(file);
+        };
+
+        // Bulk upload handling
+        btnBulkUpload.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            const newScenes = await Promise.all(files.map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        resolve({
+                            text: `${file.name.split('.')[0]}のシーン`,
+                            bg: ev.target.result,
+                            note: `${file.name} から自動生成`
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }));
+
+            scenes.push(...newScenes);
+            if (activeIdx === -1) activeIdx = 0;
+            saveData();
+            selectScene(activeIdx);
+            alert(`${newScenes.length}個のシーンを追加しました。`);
+        };
+
+        // AI Assistant Events
+        btnAiAssist.onclick = () => {
+            aiOverlay.style.display = 'block';
+            aiDialog.style.display = 'flex';
+            aiResult.style.display = 'none';
+            btnAiApply.style.display = 'none';
+        };
+
+        btnAiClose.onclick = () => {
+            aiOverlay.style.display = 'none';
+            aiDialog.style.display = 'none';
+        };
+
+        async function handleAI(type) {
+            const key = aiApiKey.value;
+            if (!key) { alert('APIキーを入力してください。'); return; }
+
+            aiLoading.style.display = 'block';
+            aiResult.style.display = 'none';
+
+            try {
+                let prompt = "";
+                if (type === 'script') {
+                    const history = scenes.slice(0, activeIdx).map(s => s.text);
+                    prompt = AIHelper.getStoryPrompt(fieldText.value, history);
+                } else {
+                    prompt = AIHelper.getImagePrompt(fieldText.value);
+                }
+
+                const result = await AIHelper.callAPI(prompt, key);
+                aiResult.value = result;
+                aiResult.style.display = 'block';
+                if (type === 'script') btnAiApply.style.display = 'block';
+            } catch (err) {
+                alert('エラー: ' + err.message);
+            } finally {
+                aiLoading.style.display = 'none';
+            }
+        }
+
+        btnAiScript.onclick = () => handleAI('script');
+        btnAiGenImg.onclick = () => handleAI('image');
+
+        btnAiApply.onclick = () => {
+            fieldText.value = aiResult.value;
+            updatePreview();
+            saveData();
+            btnAiClose.onclick();
         };
 
         // Init
