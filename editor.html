@@ -122,6 +122,22 @@
             border-top: 1px solid var(--box-border);
         }
 
+        .btn-upload {
+            background: #444;
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border: 1px solid var(--box-border);
+            text-align: center;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .btn-upload:hover {
+            background: #555;
+        }
+
         @media (max-width: 768px) {
             body {
                 grid-template-columns: 1fr;
@@ -186,8 +202,16 @@
             </div>
 
             <div class="form-group">
-                <label>背景画像（URL または assets/パス）</label>
-                <input type="text" id="field-bg" placeholder="https://example.com/image.jpg">
+                <label>背景画像（URL または ファイル選択）</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="text" id="field-bg" placeholder="https://example.com/image.jpg"
+                        style="flex: 1; min-width: 200px;">
+                    <label class="btn-upload">
+                        ファイルを選択
+                        <input type="file" id="field-file" accept="image/*" style="display: none;">
+                    </label>
+                </div>
+                <small style="color: #666; font-size: 0.75rem;">※ファイルを選択するとDataURLとして自動保存されます。</small>
             </div>
 
             <div class="form-group">
@@ -212,6 +236,8 @@
         const fieldNote = document.getElementById('field-note');
         const preview = document.getElementById('preview');
         const previewMsg = document.getElementById('preview-msg');
+
+        const fieldFile = document.getElementById('field-file');
 
         function renderSidebar() {
             sidebar.innerHTML = '';
@@ -303,6 +329,20 @@
                 renderSidebar(); // Update titles in sidebar
             };
         });
+
+        // File upload handling
+        fieldFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                fieldBg.value = event.target.result;
+                updatePreview();
+                saveData();
+            };
+            reader.readAsDataURL(file);
+        };
 
         // Init
         selectScene(activeIdx);
