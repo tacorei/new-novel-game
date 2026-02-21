@@ -712,6 +712,32 @@
             alert(`${newScenes.length}個のシーンを追加しました。`);
         };
 
+        // AI Progress Update Utility
+        function updateAIProgress(p) {
+            if (p.status === 'initiate') {
+                aiInitProgress.style.display = 'block';
+                aiProgressStatus.textContent = '初期化中...';
+            }
+            if (p.status === 'progress') {
+                aiInitProgress.style.display = 'block';
+                aiProgressStatus.textContent = `ダウンロード中: ${p.file.split('/').pop()}`;
+                aiProgressVal.textContent = Math.round(p.progress);
+                aiProgressBar.style.width = p.progress + '%';
+            }
+            if (p.status === 'ready' || p.status === 'done') {
+                aiProgressStatus.textContent = '準備完了！';
+                aiProgressVal.textContent = '100';
+                aiProgressBar.style.width = '100%';
+                setTimeout(() => {
+                    aiInitProgress.style.display = 'none';
+                    btnAiScript.disabled = false;
+                    btnAiGenImg.disabled = false;
+                    btnAiScript.style.opacity = "1";
+                    btnAiGenImg.style.opacity = "1";
+                }, 500);
+            }
+        }
+
         // AI Assistant Events
         btnAiAssist.onclick = async () => {
             aiOverlay.style.display = 'block';
@@ -720,37 +746,19 @@
             btnAiApply.style.display = 'none';
 
             // AIの初期化（ダウンロード開始）
-            aiInitProgress.style.display = 'block';
             btnAiScript.disabled = true;
             btnAiGenImg.disabled = true;
             btnAiScript.style.opacity = "0.5";
             btnAiGenImg.style.opacity = "0.5";
 
             try {
-                await AIHelper.init((p) => {
-                    if (p.status === 'initiate') {
-                        aiProgressStatus.textContent = '初期化中...';
-                    }
-                    if (p.status === 'progress') {
-                        aiProgressStatus.textContent = `ダウンロード中: ${p.file.split('/').pop()}`;
-                        aiProgressVal.textContent = Math.round(p.progress);
-                        aiProgressBar.style.width = p.progress + '%';
-                    }
-                    if (p.status === 'ready' || p.status === 'done') {
-                        aiProgressStatus.textContent = '準備完了！';
-                        aiProgressVal.textContent = '100';
-                        aiProgressBar.style.width = '100%';
-                        setTimeout(() => {
-                            aiInitProgress.style.display = 'none';
-                            btnAiScript.disabled = false;
-                            btnAiGenImg.disabled = false;
-                            btnAiScript.style.opacity = "1";
-                            btnAiGenImg.style.opacity = "1";
-                        }, 500);
-                    }
-                });
+                await AIHelper.init(updateAIProgress);
             } catch (err) {
                 alert('AIの初期化に失敗しました: ' + err.message);
+                btnAiScript.disabled = false;
+                btnAiGenImg.disabled = false;
+                btnAiScript.style.opacity = "1";
+                btnAiGenImg.style.opacity = "1";
             }
         };
 
@@ -772,7 +780,7 @@
                     prompt = AIHelper.getImagePrompt(fieldText.value);
                 }
 
-                const result = await AIHelper.callAPI(prompt);
+                const result = await AIHelper.callAPI(prompt, updateAIProgress);
                 aiResult.value = result;
                 aiResult.style.display = 'block';
                 if (type === 'script') btnAiApply.style.display = 'block';

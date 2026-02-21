@@ -10,24 +10,36 @@ export const AIHelper = {
         if (initPromise) return initPromise;
 
         initPromise = (async () => {
-            generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
-                progress_callback: (p) => {
-                    if (onProgress) onProgress(p);
-                }
-            });
-            initPromise = null; // Reset promise but generator is now set
+            try {
+                generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
+                    progress_callback: (p) => {
+                        if (onProgress) onProgress(p);
+                    }
+                });
+            } catch (err) {
+                initPromise = null; // 失敗時は再試行できるようにクリア
+                throw err;
+            } finally {
+                if (generator) initPromise = null;
+            }
         })();
 
         return initPromise;
     },
 
-    async callAPI(prompt) {
+    async callAPI(prompt, onProgress) {
         if (!generator) {
             if (initPromise) {
                 await initPromise;
             } else {
-                throw new Error("AIの準備ができていません。AIアシストボタンを押し、初期化(100%)が完了するまでお待ちください。");
+                // 初期化が始まっていない場合は開始する
+                await this.init(onProgress);
             }
+        }
+
+        // initが終わってもgeneratorがなければエラー（失敗時など）
+        if (!generator) {
+            throw new Error("AIの初期化に失敗したか、準備が完了していません。");
         }
 
         const output = await generator(prompt, {
