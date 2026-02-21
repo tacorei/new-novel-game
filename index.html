@@ -13,12 +13,27 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            height: auto;
+            /* allow scrolling if content grows */
             margin: 0;
             background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 100%);
+            overflow-y: auto;
+            /* permit vertical scroll */
             overflow-x: hidden;
             color: #fff;
             padding: 1rem;
             box-sizing: border-box;
+        }
+
+        /* override style.css for home screen centering */
+        #app {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            height: auto;
+            /* allow growth */
         }
 
         .container {
@@ -26,10 +41,6 @@
             max-width: 600px;
             padding: 3rem 2rem;
             text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
         }
 
         h1 {
