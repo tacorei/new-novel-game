@@ -130,7 +130,7 @@
 
                 item.innerHTML = `
                     <div>
-                        <div style="font-weight: bold; font-size: 0.95rem; color: #fff;">${p.name}</div>
+                        <div style="font-weight: bold; font-size: 0.95rem; color: #fff;">${p.title}</div>
                         <div style="font-size: 0.7rem; color: #666; margin-top: 0.2rem;">最終更新: ${new Date(p.updatedAt).toLocaleString()}</div>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
@@ -162,7 +162,7 @@
                 const delBtn = item.querySelector('.btn-del');
                 delBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`「${p.name}」を削除してもよろしいですか？`)) {
+                    if (confirm(`「${p.title}」を削除してもよろしいですか？`)) {
                         NovelStorage.deleteProject(p.id);
                         renderProjects();
                     }
@@ -180,8 +180,8 @@
             }
         };
 
-        btnSample.onclick = () => {
-            NovelStorage.loadSample();
+        btnSample.onclick = async () => {
+            await NovelStorage.loadSample();
             renderProjects();
         };
 

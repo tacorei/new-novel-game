@@ -699,7 +699,16 @@
                 </div>
 
                 <div class="form-group std-only">
-                    <label>選択肢分岐（テキスト, 移動先シーン番号）</label>
+                    <label>シーン終了時の遷移先（ジャンプ）</label>
+                    <select id="field-next-scene"
+                        style="width: 100%; padding: 0.6rem; background: #1a1a1a; color: #fff; border: 1px solid var(--box-border); border-radius: 8px;">
+                        <option value="">(次の番号のシーンへ)</option>
+                    </select>
+                    <small style="color: #666; font-size: 0.75rem;">※特定のシーンへ合流させたい場合や、物語を飛ばしたい場合に使用します。ｗ</small>
+                </div>
+
+                <div class="form-group std-only">
+                    <label>選択肢分岐 (Jump)</label>
                     <div id="choices-container">
                         <!-- Choices will be added here -->
                     </div>
@@ -801,6 +810,7 @@
         const fieldAudioFile = document.getElementById('field-audio-file');
         const fieldSe = document.getElementById('field-se');
         const fieldSeFile = document.getElementById('field-se-file');
+        const fieldNextScene = document.getElementById('field-next-scene');
         const choicesContainer = document.getElementById('choices-container');
 
         const preview = document.getElementById('preview');
@@ -1041,9 +1051,13 @@
                 valFade.textContent = fieldFade.value;
                 fieldAudio.value = s.audio || '';
                 fieldSe.value = s.se || '';
+                fieldNextScene.value = s.nextScene || '';
                 fieldShowName.checked = s.showName || false;
                 updateSpeakerList();
                 fieldSpeaker.value = s.speaker || '';
+
+                // Sync Jump Options before rendering choices
+                updateJumpOptions();
 
                 // Render Choices
                 choicesContainer.innerHTML = '';
@@ -1067,12 +1081,27 @@
             div.className = 'choice-item';
             div.innerHTML = `
                 <input type="text" placeholder="選択肢テキスト" value="${txt}" class="choice-text">
-                <input type="number" placeholder="ジャンプ先番号" value="${tgt}" class="choice-target" style="width: 80px;">
+                <select class="choice-target" style="width: 140px;">
+                    <option value="">(選択なし)</option>
+                    ${scenes.map((s, i) => `<option value="${i}" ${parseInt(tgt) === i ? 'selected' : ''}>${i + 1}: ${s.text.slice(0, 10)}...</option>`).join('')}
+                </select>
                 <button style="background:transparent; color:#ff4d4d; padding:0 0.5rem;" onclick="this.parentElement.remove(); saveData();">×</button>
             `;
-            const inputs = div.querySelectorAll('input');
-            inputs.forEach(i => i.oninput = saveData);
+            const inputs = div.querySelectorAll('input, select');
+            inputs.forEach(i => i.onchange = saveData);
             choicesContainer.appendChild(div);
+        }
+
+        function updateJumpOptions() {
+            const currentValue = fieldNextScene.value;
+            fieldNextScene.innerHTML = '<option value="">(次の番号のシーンへ)</option>';
+            scenes.forEach((s, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${i + 1}: ${s.text.slice(0, 15)}...`;
+                fieldNextScene.appendChild(opt);
+            });
+            fieldNextScene.value = currentValue;
         }
 
         btnAddChoice.onclick = () => {
@@ -1108,6 +1137,7 @@
                 scenes[activeIdx].fade = parseFloat(fieldFade.value);
                 scenes[activeIdx].audio = fieldAudio.value;
                 scenes[activeIdx].se = fieldSe.value;
+                scenes[activeIdx].nextScene = fieldNextScene.value;
                 scenes[activeIdx].showName = fieldShowName.checked;
                 scenes[activeIdx].speaker = fieldSpeaker.value;
 

@@ -220,11 +220,6 @@
 
         let bgm = null;
 
-        if (scenes.length === 0) {
-            alert('データがありません。');
-            window.location.href = 'index.html';
-        }
-
         function renderScene() {
             const scene = scenes[currentIdx];
             const fadeSeconds = scene.fade || 1.0;
@@ -233,19 +228,13 @@
             isTransitioning = true;
             choiceLayer.style.display = 'none';
 
-            // Set dynamic transition duration
             overlay.style.transition = `opacity ${fadeSeconds}s`;
-
-            // FADEOUT to black
             overlay.style.opacity = 1;
 
-            // Wait for full black
             setTimeout(() => {
-                // Change Content
                 bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
                 textContent.textContent = scene.text;
 
-                // Name Handling
                 const nameLabel = document.getElementById('name-label');
                 if (scene.showName && scene.speaker) {
                     nameLabel.textContent = scene.speaker;
@@ -254,13 +243,10 @@
                     nameLabel.style.display = 'none';
                 }
 
-                // Sprite Handling
                 const spriteLayer = document.getElementById('sprite-layer');
                 spriteLayer.innerHTML = '';
                 if (scene.characters) {
-                    // Z-order sort
                     const sorted = [...scene.characters].sort((a, b) => (a.z || 0) - (b.z || 0));
-
                     sorted.forEach(sc => {
                         const charDef = characters.find(c => c.id === sc.id);
                         if (charDef) {
@@ -269,7 +255,6 @@
                                 const exp = charDef.expressions.find(e => e.name === sc.expression);
                                 if (exp) imgSrc = exp.img;
                             }
-
                             if (imgSrc) {
                                 const img = document.createElement('img');
                                 img.src = imgSrc;
@@ -283,12 +268,8 @@
                     });
                 }
 
-                // Audio handling (BGM)
                 if (scene.audio === '停止' || scene.audio === 'stop') {
-                    if (bgm) {
-                        bgm.pause();
-                        bgm = null;
-                    }
+                    if (bgm) { bgm.pause(); bgm = null; }
                 } else if (scene.audio) {
                     if (!bgm || bgm.src !== new URL(scene.audio, window.location.href).href) {
                         if (bgm) bgm.pause();
@@ -298,18 +279,15 @@
                     }
                 }
 
-                // Audio handling (SE)
                 if (scene.se) {
                     const se = new Audio(scene.se);
                     se.play().catch(e => console.log("SE play blocked", e));
                 }
 
-                // Restart zoom animation to avoid jump
                 bgImage.classList.remove('slow-zoom');
-                void bgImage.offsetWidth; // trigger reflow
+                void bgImage.offsetWidth;
                 bgImage.classList.add('slow-zoom');
 
-                // FADEIN
                 overlay.style.opacity = 0;
             }, fadeMs);
         }
@@ -318,26 +296,29 @@
             choiceLayer.innerHTML = '';
             choiceLayer.style.display = 'flex';
             clickHint.style.display = 'none';
-
             choices.forEach(c => {
                 const btn = document.createElement('div');
                 btn.className = 'choice-btn';
                 btn.textContent = c.text;
                 btn.onclick = (e) => {
                     e.stopPropagation();
-                    currentIdx = c.target - 1; // 1-indexed to 0-indexed
-                    if (currentIdx < 0) currentIdx = 0;
+                    // Supports both direct indices and potentially ID strings in future
+                    const target = parseInt(c.target);
+                    if (!isNaN(target)) {
+                        currentIdx = target;
+                    } else {
+                        // fallback or search by title if needed
+                        console.warn("Invalid jump target:", c.target);
+                    }
                     renderScene();
                 };
                 choiceLayer.appendChild(btn);
             });
         }
 
-        // Listen for when fade-in is fully finished
         overlay.ontransitionend = () => {
             if (overlay.style.opacity === "0") {
                 isTransitioning = false;
-
                 const scene = scenes[currentIdx];
                 if (scene.choices && scene.choices.length > 0) {
                     showChoices(scene.choices);
@@ -350,7 +331,17 @@
         function next() {
             if (isTransitioning) return;
             const scene = scenes[currentIdx];
-            if (scene.choices && scene.choices.length > 0) return; // Wait for choice
+            if (scene.choices && scene.choices.length > 0) return;
+
+            // Handle custom jump
+            if (scene.nextScene !== undefined && scene.nextScene !== "" && scene.nextScene !== null) {
+                const target = parseInt(scene.nextScene);
+                if (!isNaN(target)) {
+                    currentIdx = target;
+                    renderScene();
+                    return;
+                }
+            }
 
             currentIdx++;
             if (currentIdx < scenes.length) {
@@ -369,12 +360,20 @@
             }, 1000);
         }
 
-        document.body.onclick = next;
-
-        // Init
-        setTimeout(() => {
+        async function init() {
+            const projectData = await NovelStorage.load();
+            scenes = projectData.scenes || [];
+            characters = projectData.characters || [];
+            if (scenes.length === 0) {
+                alert('データがありません。');
+                window.location.href = 'index.html';
+                return;
+            }
             renderScene();
-        }, 100);
+        }
+
+        document.body.onclick = next;
+        init();
     </script>
 </body>
 

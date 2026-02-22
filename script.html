@@ -141,10 +141,16 @@
     <script type="module">
         import NovelStorage from './js/storage.js';
 
-        let scenes = NovelStorage.load();
+        let scenes = [];
         const container = document.getElementById('scenes-list');
         const btnCopy = document.getElementById('btn-copy');
         const btnDownload = document.getElementById('btn-download-txt');
+
+        async function init() {
+            const projectData = await NovelStorage.load();
+            scenes = projectData.scenes || [];
+            render();
+        }
 
         function render() {
             container.innerHTML = '';
@@ -218,7 +224,7 @@
             URL.revokeObjectURL(url);
         };
 
-        render();
+        init();
     </script>
 </body>
 
