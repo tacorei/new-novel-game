@@ -1114,11 +1114,6 @@
             saveData();
         };
 
-        function updatePreview() {
-            if (activeIdx === -1) return;
-            preview.style.backgroundImage = `url(${fieldBg.value})`;
-            previewMsg.textContent = fieldText.value;
-        }
 
         function deleteScene(idx) {
             if (scenes.length <= 1) {
