@@ -33,7 +33,8 @@ const NovelStorage = {
     list.push(newProject);
     this.saveProjectsList(list);
     this.setActiveProjectId(id);
-    this.save([], []); // 初期データを保存
+    const initialScenes = [{ text: 'ここから物語がはじまります！ｗ', bg: '', note: '', fade: 1.0, audio: '', se: '', choices: [] }];
+    this.save(initialScenes, []); // 初期データを保存
     return id;
   },
 

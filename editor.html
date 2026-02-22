@@ -753,9 +753,9 @@
         import NovelStorage from './js/storage.js';
         import { AIHelper } from './js/ai.js';
 
-        let scenes;
-        let characters;
-        let activeIdx;
+        let scenes = [];
+        let characters = [];
+        let activeIdx = -1;
         let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
 
         // Initialize the app
@@ -776,7 +776,7 @@
             }
 
             const projectData = await NovelStorage.load();
-            scenes = projectData.scenes;
+            scenes = projectData.scenes || [];
             characters = projectData.characters || [];
 
             if (scenes.length === 0) {
@@ -787,12 +787,17 @@
                 activeIdx = 0;
                 document.getElementById('welcome-overlay').style.display = 'none';
                 document.getElementById('editor-form').style.display = 'grid';
-                renderSidebar();
-                renderPalette();
-                updateSpeakerList();
+            }
+
+            // UIの初期描画とモード適用
+            renderSidebar();
+            renderPalette();
+            updateSpeakerList();
+            applyMode();
+
+            if (scenes.length > 0) {
                 selectScene(0);
             }
-            applyMode();
         }
 
         initApp();
@@ -1736,13 +1741,7 @@
             alert('AIの生成結果を本文に適用しました！');
         };
 
-        // Init
-        renderPalette();
-        applyMode();
-        if (scenes.length === 0) {
-            modeOverlay.style.display = 'flex';
-        }
-        selectScene(activeIdx);
+        // Initial execution is now handled within initApp() async flow
     </script>
 </body>
 

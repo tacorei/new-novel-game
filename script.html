@@ -155,7 +155,17 @@
         function render() {
             container.innerHTML = '';
             if (scenes.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:#999;">シーンがありません。</p>';
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 5rem 2rem;">
+                        <p style="color:#999; margin-bottom: 2rem;">まだシーンがありません。ｗ</p>
+                        <button id="btn-empty-add" style="padding: 1rem 2rem; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer;">+ 最初のシーンを追加する</button>
+                    </div>
+                `;
+                document.getElementById('btn-empty-add').onclick = () => {
+                    scenes.push({ text: 'ここから物語がはじまります！ｗ', bg: '', note: '', fade: 1.0, audio: '', se: '', choices: [] });
+                    NovelStorage.save(scenes);
+                    render();
+                };
                 return;
             }
 
