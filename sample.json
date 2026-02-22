@@ -1,0 +1,90 @@
+{
+    "scenes": [
+        {
+            "text": "こんにちは！ノベルゲーム制作の世界へようこそ！ｗ",
+            "bg": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fm=jpg&q=80&w=2000",
+            "note": "最初のシーンですｗ",
+            "fade": 1,
+            "audio": "",
+            "se": "",
+            "showName": true,
+            "speaker": "案内人",
+            "characters": [
+                {
+                    "id": "char-guide",
+                    "expression": "smile",
+                    "x": 50,
+                    "y": 90,
+                    "z": 1
+                }
+            ],
+            "choices": [
+                {
+                    "text": "次へ進む！ｗ",
+                    "target": 1
+                },
+                {
+                    "text": "ジャンプする！ｗ",
+                    "target": 2
+                }
+            ]
+        },
+        {
+            "text": "ここではキャラクターや背景を自由に配置できます。ｗ",
+            "bg": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?fm=jpg&q=80&w=2000",
+            "note": "2つ目のシーンｗ",
+            "fade": 1,
+            "audio": "",
+            "se": "",
+            "showName": true,
+            "speaker": "案内人",
+            "characters": [
+                {
+                    "id": "char-guide",
+                    "expression": "default",
+                    "x": 30,
+                    "y": 90,
+                    "z": 1
+                }
+            ],
+            "choices": []
+        },
+        {
+            "text": "ジャンプしてきました！分岐機能もバッチリですね。ｗ",
+            "bg": "https://images.unsplash.com/photo-1501785888041-af3ef285b470?fm=jpg&q=80&w=2000",
+            "note": "ジャンプ先シーンｗ",
+            "fade": 1,
+            "audio": "",
+            "se": "",
+            "showName": true,
+            "speaker": "案内人",
+            "characters": [
+                {
+                    "id": "char-guide",
+                    "expression": "smile",
+                    "x": 70,
+                    "y": 90,
+                    "z": 1
+                }
+            ],
+            "choices": []
+        }
+    ],
+    "characters": [
+        {
+            "id": "char-guide",
+            "name": "案内人",
+            "img": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+            "expressions": [
+                {
+                    "name": "smile",
+                    "img": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+                },
+                {
+                    "name": "default",
+                    "img": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png"
+                }
+            ]
+        }
+    ]
+}
