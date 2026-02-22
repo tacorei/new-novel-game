@@ -117,10 +117,21 @@ const NovelStorage = {
   async loadSample() {
     try {
       const response = await fetch('sample.json');
-      const scenes = await response.json();
+      const data = await response.json();
+
+      let scenes = [];
+      let characters = [];
+
+      if (Array.isArray(data)) {
+        scenes = data;
+      } else {
+        scenes = data.scenes || [];
+        characters = data.characters || [];
+      }
+
       const id = this.createProject("サンプルプロジェクト");
-      this.save(scenes, []);
-      return { id, scenes };
+      this.save(scenes, characters);
+      return { id, scenes, characters };
     } catch (e) {
       console.error("Sample Load Error:", e);
       return null;

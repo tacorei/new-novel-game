@@ -494,7 +494,7 @@
                     <button id="btn-add-scene"
                         style="background: var(--accent-color); color: #000; font-size: 0.75rem; padding: 0.3rem 1.2rem;">+
                         追加</button>
-                    <button id="btn-play"
+                    <button id="btn-play-now"
                         style="background: #3f51b5; color: #fff; font-size: 0.75rem; padding: 0.3rem 1.5rem;">再生</button>
                     <button id="btn-switch-mode"
                         style="background: transparent; color: #666; font-size: 0.6rem; padding: 0; margin-left: 0.5rem;">⚡
@@ -611,8 +611,30 @@
                 </div>
             </div>
         </div>
-        <div id="no-scene-msg" style="text-align: center; margin-top: 5rem; color: #666;">
+        <div id="no-scene-msg" style="text-align: center; margin-top: 5rem; color: #666; display: none;">
             シーンがありません。「シーン追加」ボタンを押してください。
+        </div>
+
+        <!-- Welcome Overlay (Initial project / sample data) -->
+        <div id="welcome-overlay"
+            style="display: none; height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 2rem; padding: 2rem;">
+            <div style="text-align: center; max-width: 600px;">
+                <h1
+                    style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(45deg, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    Vivid Studio</h1>
+                <p style="color: #888; line-height: 1.6;">空っぽのキャンバスから始めるか、あらかじめ用意されたサンプル（お手本）から始めてみましょう。ｗ</p>
+            </div>
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+                <div class="mode-card" id="btn-start-scratch" style="width: 250px; padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem;">🛠️ 最初から作る</h3>
+                    <p>真っ白な状態から自由に制作を開始します。</p>
+                </div>
+                <div class="mode-card" id="btn-start-sample"
+                    style="width: 250px; padding: 1.5rem; border-color: var(--accent-color); background: rgba(3, 218, 198, 0.05);">
+                    <h3 style="font-size: 1.2rem; color: var(--accent-color);">✨ お手本を見る</h3>
+                    <p>キラキラしたサンプルデータを読み込んで参考にします。ｗ</p>
+                </div>
+            </div>
         </div>
 
         <div id="editor-form" style="display: none;">
@@ -750,8 +772,12 @@
 
             if (scenes.length === 0) {
                 document.getElementById('welcome-overlay').style.display = 'flex';
+                document.getElementById('editor-form').style.display = 'none';
+                document.getElementById('no-scene-msg').style.display = 'none';
             } else {
                 activeIdx = 0;
+                document.getElementById('welcome-overlay').style.display = 'none';
+                document.getElementById('editor-form').style.display = 'grid';
                 renderSidebar();
                 renderPalette();
                 updateSpeakerList();
@@ -847,6 +873,31 @@
         document.getElementById('mode-ai').onclick = () => { currentMode = 'ai'; applyMode(); modeOverlay.style.display = 'none'; };
         document.getElementById('mode-standard').onclick = () => { currentMode = 'standard'; applyMode(); modeOverlay.style.display = 'none'; };
         btnSwitchMode.onclick = () => modeOverlay.style.display = 'flex';
+
+        // Welcome action events
+        document.getElementById('btn-start-scratch').onclick = () => {
+            document.getElementById('btn-add-scene').click();
+            document.getElementById('welcome-overlay').style.display = 'none';
+            document.getElementById('editor-form').style.display = 'grid';
+        };
+
+        document.getElementById('btn-start-sample').onclick = async () => {
+            const res = await NovelStorage.loadSample();
+            if (res) {
+                scenes = res.scenes;
+                characters = res.characters || [];
+                activeIdx = 0;
+                document.getElementById('welcome-overlay').style.display = 'none';
+                document.getElementById('editor-form').style.display = 'grid';
+                renderSidebar();
+                renderPalette();
+                updateSpeakerList();
+                selectScene(0);
+                saveData(); // クラウドに即時同期
+            } else {
+                alert("サンプルの読み込みに失敗しました。");
+            }
+        };
 
         // Hamburger Menu Logic
         const hamburger = document.getElementById('hamburger');
