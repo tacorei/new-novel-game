@@ -133,6 +133,44 @@
             color: black;
             transform: scale(1.05);
         }
+
+        /* Character Sprites & Name Label */
+        .sprite-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .character-sprite {
+            position: absolute;
+            bottom: 0;
+            height: 85vh;
+            /* 画面の85%程度の高さ */
+            transform: translateX(-50%);
+            object-fit: contain;
+            transition: opacity 0.5s;
+        }
+
+        .name-label {
+            position: absolute;
+            top: -1.5rem;
+            left: 2rem;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.3rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 11;
+        }
     </style>
 </head>
 
@@ -153,8 +191,11 @@
         <div id="bg-image"></div>
     </div>
 
+    <div id="sprite-layer" class="sprite-layer"></div>
+
     <div id="ui-layer">
         <div id="text-box" class="glass">
+            <div id="name-label" class="name-label" style="display: none;"></div>
             <div id="text-content"></div>
             <div class="click-hint" id="click-hint">▼ Click or Tap</div>
         </div>
@@ -165,7 +206,8 @@
     <script type="module">
         import NovelStorage from './js/storage.js';
 
-        const scenes = NovelStorage.load();
+        let scenes = [];
+        let characters = [];
         let currentIdx = 0;
         let isTransitioning = false;
 
@@ -202,6 +244,44 @@
                 // Change Content
                 bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
                 textContent.textContent = scene.text;
+
+                // Name Handling
+                const nameLabel = document.getElementById('name-label');
+                if (scene.showName && scene.speaker) {
+                    nameLabel.textContent = scene.speaker;
+                    nameLabel.style.display = 'block';
+                } else {
+                    nameLabel.style.display = 'none';
+                }
+
+                // Sprite Handling
+                const spriteLayer = document.getElementById('sprite-layer');
+                spriteLayer.innerHTML = '';
+                if (scene.characters) {
+                    // Z-order sort
+                    const sorted = [...scene.characters].sort((a, b) => (a.z || 0) - (b.z || 0));
+
+                    sorted.forEach(sc => {
+                        const charDef = characters.find(c => c.id === sc.id);
+                        if (charDef) {
+                            let imgSrc = charDef.img;
+                            if (sc.expression && charDef.expressions) {
+                                const exp = charDef.expressions.find(e => e.name === sc.expression);
+                                if (exp) imgSrc = exp.img;
+                            }
+
+                            if (imgSrc) {
+                                const img = document.createElement('img');
+                                img.src = imgSrc;
+                                img.className = 'character-sprite';
+                                img.style.left = `${sc.x}%`;
+                                img.style.bottom = `${100 - sc.y}%`;
+                                img.style.zIndex = sc.z || 0;
+                                spriteLayer.appendChild(img);
+                            }
+                        }
+                    });
+                }
 
                 // Audio handling (BGM)
                 if (scene.audio === '停止' || scene.audio === 'stop') {

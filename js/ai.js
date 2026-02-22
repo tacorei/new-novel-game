@@ -58,17 +58,34 @@ export const AIHelper = {
         return output[0].generated_text.replace(prompt, "").trim();
     },
 
+    // 非ASCII文字を削除または置換するクリーンアップ関数
+    _cleanPrompt(text) {
+        if (!text) return "";
+        // 日本語（非ASCII）が含まれるとモデルがパニックを起こすため、
+        // 英語の文字、数字、記号のみを残します。
+        return text.replace(/[^\x00-\x7F]/g, " ").replace(/\s+/g, " ").trim();
+    },
+
     getStoryPrompt(currentText, historyList) {
-        // ローカルAI（distilgpt2など）向けにシンプルな英語プロンプト＋指示を与える構成に調整
-        // 本来は日本語モデルが望ましいが、リソース制約のため英語で思考させ、
-        // 日本語で出力するような指示にするか、プロンプト自体を工夫します。
-        return `Finish the story in Japanese.
-    History: ${historyList.slice(-2).join(" ")}
-Current: ${currentText}
-Next: `;
+        const cleanCurrent = this._cleanPrompt(currentText);
+        const cleanHistory = historyList.slice(-2).map(h => this._cleanPrompt(h)).join(" | ");
+
+        return `Suggest a creative next scene in English based on the context.
+Context history: ${cleanHistory || "No previous history."}
+Current scene: ${cleanCurrent || "Starting a new story."}
+Next scene idea in English: `;
     },
 
     getImagePrompt(sceneText) {
-        return `Background image description for: ${sceneText}. Stable Diffusion prompt style: `;
+        const cleanText = this._cleanPrompt(sceneText);
+        return `Detailed artistic background image prompt for: "${cleanText}". Stable Diffusion style, high quality: `;
+    },
+
+    getCustomPrompt(instruction, currentText) {
+        const cleanIns = this._cleanPrompt(instruction);
+        const cleanText = this._cleanPrompt(currentText);
+        return `Instruction: ${cleanIns}
+Context: ${cleanText}
+Result in English: `;
     }
 };

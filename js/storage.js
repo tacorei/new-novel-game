@@ -1,37 +1,50 @@
-const PROJECTS_KEY = 'novel_projects_list';
-const ACTIVE_PROJECT_KEY = 'novel_active_project_id';
-const DATA_PREFIX = 'novel_data_';
+import { CloudStorage } from './db.js';
+
+const LIST_NAME = 'novel_projects_list';
+const DATA_PREFIX = 'novel_project_';
 
 const NovelStorage = {
-  // プロジェクト一覧を取得
+  // クラウド同期の初期化
+  async initCloud() {
+    return await CloudStorage.init();
+  },
+
+  // プロジェクトリストを取得
   getProjects() {
-    const list = localStorage.getItem(PROJECTS_KEY);
-    return list ? JSON.parse(list) : [];
+    const data = localStorage.getItem(LIST_NAME);
+    return data ? JSON.parse(data) : [];
   },
 
-  // プロジェクト一覧を保存
+  // プロジェクトリストを保存
   saveProjectsList(list) {
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(list));
+    localStorage.setItem(LIST_NAME, JSON.stringify(list));
   },
 
-  // 現在のプロジェクトIDを取得
-  getActiveProjectId() {
-    return localStorage.getItem(ACTIVE_PROJECT_KEY);
-  },
-
-  // アクティブなプロジェクトを切り替え
-  setActiveProjectId(id) {
-    localStorage.setItem(ACTIVE_PROJECT_KEY, id);
-  },
-
-  // 新規プロジェクト作成
-  createProject(name) {
-    const id = 'p_' + Date.now();
+  // 新規プロジェクトを作成
+  createProject(title) {
     const list = this.getProjects();
-    list.push({ id, name, updatedAt: new Date().toISOString() });
+    const id = Date.now().toString();
+    const newProject = {
+      id,
+      title,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    list.push(newProject);
     this.saveProjectsList(list);
     this.setActiveProjectId(id);
+    this.save([], []); // 初期データを保存
     return id;
+  },
+
+  // アクティブなプロジェクトIDを設定
+  setActiveProjectId(id) {
+    localStorage.setItem('active_project_id', id);
+  },
+
+  // アクティブなプロジェクトIDを取得
+  getActiveProjectId() {
+    return localStorage.getItem('active_project_id');
   },
 
   // プロジェクトの削除
@@ -41,15 +54,18 @@ const NovelStorage = {
     this.saveProjectsList(list);
     localStorage.removeItem(DATA_PREFIX + id);
     if (this.getActiveProjectId() === id) {
-      localStorage.removeItem(ACTIVE_PROJECT_KEY);
+      localStorage.removeItem('active_project_id');
     }
+    // クラウドからも削除
+    CloudStorage.delete(id);
   },
 
-  // アクティブなプロジェクトのデータを保存
-  save(data) {
+  // データを保存
+  save(scenes, characters = []) {
     const id = this.getActiveProjectId();
     if (!id) return;
-    localStorage.setItem(DATA_PREFIX + id, JSON.stringify(data));
+    const projectData = { scenes, characters };
+    localStorage.setItem(DATA_PREFIX + id, JSON.stringify(projectData));
 
     // 更新日時を更新
     const list = this.getProjects();
@@ -57,26 +73,58 @@ const NovelStorage = {
     if (p) {
       p.updatedAt = new Date().toISOString();
       this.saveProjectsList(list);
+
+      // クラウド同期
+      CloudStorage.save(id, p.title, projectData);
     }
   },
 
-  // アクティブなプロジェクトのデータを読み込み
-  load() {
+  // データを読み込み
+  async load() {
     const id = this.getActiveProjectId();
-    if (!id) return [];
-    const data = localStorage.getItem(DATA_PREFIX + id);
-    return data ? JSON.parse(data) : [];
+    if (!id) return { scenes: [], characters: [] };
+
+    // まずローカルから
+    const raw = localStorage.getItem(DATA_PREFIX + id);
+    let localData = { scenes: [], characters: [] };
+
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) {
+          localData = { scenes: data, characters: [] };
+        } else {
+          localData = {
+            scenes: data.scenes || [],
+            characters: data.characters || []
+          };
+        }
+      } catch (e) {
+        console.error("Storage Load Error:", e);
+      }
+    }
+
+    // クラウドから最新を取得
+    const cloudData = await CloudStorage.load(id);
+    if (cloudData) {
+      return cloudData;
+    }
+
+    return localData;
   },
 
-  // サンプルデータの読み込み（新プロジェクトとして作成）
-  loadSample() {
-    const id = this.createProject('サンプル物語');
-    const sampleData = [
-      { "text": "ここは静かな夜の街。どこか懐かしい香りがする。", "bg": "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&q=80&w=2000" },
-      { "text": "「……誰？」\n暗闇の中から声がした。", "bg": "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=80&w=2000" }
-    ];
-    this.save(sampleData);
-    return id;
+  // サンプル読み込み
+  async loadSample() {
+    try {
+      const response = await fetch('sample.json');
+      const scenes = await response.json();
+      const id = this.createProject("サンプルプロジェクト");
+      this.save(scenes, []);
+      return { id, scenes };
+    } catch (e) {
+      console.error("Sample Load Error:", e);
+      return null;
+    }
   }
 };
 

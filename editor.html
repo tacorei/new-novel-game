@@ -111,22 +111,58 @@
             margin: 0;
         }
 
-        /* PC: Widescreen layout */
+        /* Studio Layout (PC) */
         @media (min-width: 1280px) {
+            #edit-area {
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 60px);
+                /* Header height */
+            }
+
+            #ai-studio-panel {
+                background: #1a1a2e;
+                border-bottom: 2px solid var(--accent-color);
+                padding: 1.5rem 2rem;
+                display: none;
+                /* Initially hidden */
+                flex-shrink: 0;
+            }
+
             #editor-form {
-                grid-template-columns: 1.3fr 0.7fr;
-                /* Favor editor area */
-                align-items: start;
+                display: grid;
+                grid-template-columns: 450px 1fr;
+                /* Fixed width for fields, expansive preview */
+                gap: 0;
+                height: 100%;
+                overflow: hidden;
             }
 
             .editor-fields {
-                order: 1;
+                padding: 2rem;
+                overflow-y: auto;
+                border-right: 1px solid var(--box-border);
             }
 
             .sticky-preview {
-                order: 2;
-                position: sticky;
-                top: 1rem;
+                padding: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #000;
+                overflow: hidden;
+            }
+
+            .preview-box {
+                margin: 0;
+                width: 95%;
+                max-width: 1200px;
+                box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
+            }
+
+            textarea {
+                min-height: 400px;
             }
         }
 
@@ -194,6 +230,41 @@
             align-items: center;
             line-height: 1.5;
             white-space: pre-wrap;
+            position: relative;
+            z-index: 10;
+        }
+
+        .preview-name-label {
+            position: absolute;
+            top: -1.2rem;
+            left: 1rem;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            z-index: 11;
+        }
+
+        .sprite-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .preview-sprite {
+            position: absolute;
+            bottom: 0;
+            height: 90%;
+            transform: translateX(-50%);
+            object-fit: contain;
         }
 
         .btn-upload {
@@ -382,87 +453,164 @@
 
     <header class="editor-header">
         <div
-            style="display: flex; align-items: center; gap: 2rem; width: 100%; max-width: 1200px; margin: 0 auto; position: relative;">
+            style="display: flex; align-items: center; gap: 2rem; width: 100%; max-width: 100%; padding: 0 1.5rem; margin: 0 auto; position: relative; height: 60px;">
             <button onclick="location.href='index.html'"
-                style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1.5rem;">←
+                style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1.2rem; font-size: 0.8rem;">←
                 ページに戻る</button>
             <h2
-                style="font-size: 1.1rem; flex-grow: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 3rem;">
+                style="font-size: 1.2rem; flex-grow: 1; text-align: center; color: #fff; font-weight: normal; margin: 0;">
                 ノベルエディター</h2>
 
             <button id="hamburger">☰</button>
 
             <div class="header-controls" id="header-controls">
-                <button id="btn-export" style="background: rgba(255,255,255,0.05); font-size: 0.8rem;">📥 保存</button>
-                <label
-                    style="background: rgba(255,255,255,0.05); border: 1px solid var(--box-border); padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; text-align: center;">
-                    📤 読込
-                    <input type="file" id="btn-import" accept=".json" style="display: none;">
-                </label>
-                <label class="btn-primary"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.4rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                    📷 一括
-                    <input type="file" id="btn-bulk-upload" accept="image/*" multiple style="display: none;">
-                </label>
-                <button id="btn-ai-assist"
-                    style="background: linear-gradient(45deg, #6200ea, #03dac6); color: #fff; font-size: 0.8rem;">✨
-                    AI</button>
-                <button onclick="location.href='script.html'"
-                    style="background: rgba(255,255,255,0.05); font-size: 0.8rem; border: 1px solid var(--box-border);">📄
-                    台本</button>
-                <button id="btn-add-scene" style="background: var(--accent-color); color: #000; font-size: 0.8rem;">+
-                    追加</button>
-                <button id="btn-play-now" style="font-size: 0.8rem;">再生</button>
-                <button id="btn-switch-mode" style="background: transparent; color: #666; font-size: 0.7rem;">⚡
-                    モード切替</button>
-            </div>
-        </div>
-    </header>
-
-    <div id="ai-overlay"></div>
-    <div id="ai-dialog" class="glass fade-in" style="background: #1a1a2e; border: 1px solid var(--accent-color);">
-        <h3 style="margin-bottom: 0.5rem; color: var(--accent-color);">AI制作アシスタント</h3>
-        <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 1rem;">
-            ブラウザ内蔵AIを使用して、物語の構成や画像のプロンプト作成をサポートします。
-            <br><span style="color:var(--accent-color);">※初回のみAI（約150MB）のロードに時間がかかります。</span>
-        </p>
-
-        <div id="ai-init-progress"
-            style="margin-bottom: 1rem; display: none; background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.5rem;">
-                <span id="ai-progress-status" style="color: #888;">AIデータを取得中...</span>
-                <span style="color: var(--accent-color); font-weight: bold;"><span id="ai-progress-val">0</span>%</span>
-            </div>
-            <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
-                <div id="ai-progress-bar"
-                    style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-color), #fff); transition: width 0.2s;">
+                <div
+                    style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; margin-bottom: 0.3rem;">
+                    <div id="cloud-status"
+                        style="font-size: 0.6rem; padding: 0.2rem 0.5rem; border-radius: 10px; background: rgba(0,0,0,0.3); color: #888; display: flex; align-items: center; gap: 0.3rem; margin-right: 0.5rem;">
+                        <span style="width: 5px; height: 5px; border-radius: 50%; background: #555;"></span>
+                        Unknown
+                    </div>
+                    <label class="btn-primary"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid var(--box-border); padding: 0.3rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                        📷 一括
+                        <input type="file" id="btn-bulk-upload" accept="image/*" multiple style="display: none;">
+                    </label>
+                    <button id="btn-export"
+                        style="background: rgba(255,255,255,0.1); font-size: 0.75rem; padding: 0.3rem 0.8rem;">💾
+                        保存</button>
+                    <label
+                        style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.3rem 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.75rem;">
+                        📥 読込
+                        <input type="file" id="btn-import" accept=".json" style="display: none;">
+                    </label>
+                </div>
+                <div style="display: flex; gap: 0.3rem; justify-content: flex-end; align-items: center;">
+                    <button id="btn-studio"
+                        style="background: linear-gradient(45deg, #6200ea, #03dac6); color: #fff; font-size: 0.7rem; padding: 0.3rem 0.6rem;">✨
+                        AIパネル</button>
+                    <button onclick="location.href='script.html'"
+                        style="background: rgba(255,255,255,0.05); font-size: 0.7rem; padding: 0.3rem 0.6rem; border: 1px solid var(--box-border);">台本</button>
+                    <button id="btn-add-scene"
+                        style="background: var(--accent-color); color: #000; font-size: 0.75rem; padding: 0.3rem 1.2rem;">+
+                        追加</button>
+                    <button id="btn-play"
+                        style="background: #3f51b5; color: #fff; font-size: 0.75rem; padding: 0.3rem 1.5rem;">再生</button>
+                    <button id="btn-switch-mode"
+                        style="background: transparent; color: #666; font-size: 0.6rem; padding: 0; margin-left: 0.5rem;">⚡
+                        モード</button>
                 </div>
             </div>
         </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <button id="btn-ai-script" style="background: #333;">📜 次の展開を提案</button>
-            <button id="btn-ai-gen-img" style="background: #333;">🎨 画像プロンプト作成</button>
-        </div>
-
-        <div id="ai-loading" style="display: none; text-align: center; font-size: 0.8rem; color: var(--accent-color);">
-            思考中...
-        </div>
-
-        <textarea id="ai-result" readonly style="margin-top: 1rem; font-size: 0.85rem; height: 100px; display: none;"
-            placeholder="AIの結果がここに表示されます"></textarea>
-
-        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
-            <button id="btn-ai-close" style="background: transparent; color: #888;">閉じる</button>
-            <button id="btn-ai-apply" style="display: none; background: var(--primary-color);">結果を適用</button>
-        </div>
-    </div>
+    </header>
 
     <aside id="sidebar">
         <!-- Scenes will be listed here -->
     </aside>
 
     <main id="edit-area">
+        <!-- Integrated AI Panel for Studio -->
+        <div id="ai-studio-panel" class="glass fade-in">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="margin: 0; color: var(--accent-color); font-size: 1rem;">AI制作アシスタント (Studio)</h3>
+                    <p style="font-size: 0.75rem; color: #888; margin: 0.2rem 0 0;">超軽量モデル(英語)があなたの制作をサポートします。</p>
+                </div>
+                <button id="btn-ai-close"
+                    style="background: transparent; color: #888; padding: 0.2rem 0.5rem; font-size: 1.2rem; border: none;">✕</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- AI Panel Left: Prompting -->
+                <div class="form-group">
+                    <label style="color: var(--accent-color);">AIへの指示・追加プロンプト（英語推奨）</label>
+                    <textarea id="ai-instruction" placeholder="例: make it more suspicious, a dark room, etc..."
+                        style="height: 100px; font-size: 0.8rem; padding: 0.5rem; min-height: 100px;"></textarea>
+
+                    <div id="ai-init-progress"
+                        style="margin-top: 1rem; display: none; background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.5rem;">
+                            <span id="ai-progress-status" style="color: #888;">AIデータを取得中...</span>
+                            <span style="color: var(--accent-color); font-weight: bold;"><span
+                                    id="ai-progress-val">0</span>%</span>
+                        </div>
+                        <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
+                            <div id="ai-progress-bar"
+                                style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-color), #fff); transition: width 0.2s;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+                        <button id="btn-ai-script" style="background: #333; font-size: 0.75rem;">📜 次を提案</button>
+                        <button id="btn-ai-gen-img" style="background: #333; font-size: 0.75rem;">🎨 画像案</button>
+                        <button id="btn-ai-custom" style="background: var(--primary-color); font-size: 0.75rem;">⚡
+                            指示で生成</button>
+                    </div>
+                    <textarea id="ai-result" readonly
+                        style="font-size: 0.85rem; height: 100px; min-height: 100px; margin-top: 1rem;"
+                        placeholder="AIの結果がここに表示されます"></textarea>
+                    <button id="btn-ai-apply"
+                        style="display: none; background: var(--primary-color); margin-top: 0.5rem; width: 100%;">この結果を本文に適用する</button>
+                </div>
+
+                <!-- AI Panel Right: Character Palette -->
+                <div class="form-group">
+                    <label style="color: var(--accent-color);">キャラクターパレット（管理）</label>
+                    <div id="palette-list"
+                        style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 8px;">
+                        <!-- Registered characters will be here -->
+                    </div>
+                    <div style="margin-top: 0.5rem; display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.3rem;">
+                        <input type="text" id="palette-name" placeholder="名前"
+                            style="font-size: 0.75rem; padding: 0.4rem;">
+                        <input type="text" id="palette-img" placeholder="基本画像URL"
+                            style="font-size: 0.75rem; padding: 0.4rem;">
+                        <button id="btn-palette-add"
+                            style="background: var(--accent-color); color: #000; font-size: 0.75rem; padding: 0.4rem;">新規登録</button>
+                    </div>
+
+                    <!-- Expression Manager Area (hidden by default) -->
+                    <div id="expression-manager"
+                        style="display: none; margin-top: 0.8rem; padding: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid #444;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span id="exp-target-name"
+                                style="font-size: 0.8rem; color: #fff; font-weight: bold;"></span>
+                            <button onclick="document.getElementById('expression-manager').style.display='none'"
+                                style="background:transparent; color:#888; padding:0;">✕</button>
+                        </div>
+                        <div id="exp-list"
+                            style="display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.5rem; max-height: 100px; overflow-y: auto;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 0.3rem;">
+                            <input type="text" id="exp-name" placeholder="表情名"
+                                style="font-size: 0.7rem; padding: 0.3rem;">
+                            <input type="text" id="exp-img" placeholder="画像URL"
+                                style="font-size: 0.7rem; padding: 0.3rem;">
+                            <button id="btn-exp-add"
+                                style="background: #555; font-size: 0.7rem; padding: 0.3rem;">表情追加</button>
+                        </div>
+                        <div style="margin-top: 0.3rem;">
+                            <label class="btn-upload"
+                                style="font-size: 0.65rem; width: 100%; box-sizing: border-box; padding: 0.2rem;">
+                                表情ファイルをアップロード
+                                <input type="file" id="exp-file" accept="image/*" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 0.3rem;">
+                        <label class="btn-upload"
+                            style="font-size: 0.7rem; width: 100%; box-sizing: border-box; padding: 0.3rem;">
+                            新規キャラ画像ファイルをアップロード
+                            <input type="file" id="palette-file" accept="image/*" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="no-scene-msg" style="text-align: center; margin-top: 5rem; color: #666;">
             シーンがありません。「シーン追加」ボタンを押してください。
         </div>
@@ -472,7 +620,10 @@
                 <div class="form-group">
                     <label>プレビュー</label>
                     <div id="preview" class="preview-box">
-                        <div id="preview-msg" class="preview-text"></div>
+                        <div id="sprite-layer" class="sprite-layer"></div>
+                        <div id="preview-msg" class="preview-text">
+                            <div id="preview-name" class="preview-name-label" style="display: none;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -540,6 +691,26 @@
                 </div>
 
                 <div class="form-group">
+                    <label style="color: var(--accent-color);">登場キャラクター設定</label>
+                    <div id="scene-characters-container"
+                        style="display: flex; flex-direction: column; gap: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                        <!-- Character instances for this scene will be here -->
+                    </div>
+                    <button id="btn-add-scene-char" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
+                        登場人物を追加</button>
+                    <div style="margin-top: 0.5rem;">
+                        <label
+                            style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; color: #aaa;">
+                            <input type="checkbox" id="field-show-name"> 名前ラベルを表示する
+                        </label>
+                        <select id="field-speaker"
+                            style="width: 100%; margin-top: 0.5rem; background: #222; color: #fff; border: 1px solid #444; padding: 0.5rem; border-radius: 4px;">
+                            <option value="">（話し手を選択）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>演出：フェード時間（秒）: <span id="val-fade">1.0</span>s</label>
                     <input type="range" id="field-fade" min="0" max="5" step="0.5" value="1.0">
                     <small style="color: #666; font-size: 0.75rem;">※次のシーンに切り替わる際、暗転・復帰にかかる時間です。</small>
@@ -551,9 +722,45 @@
         import NovelStorage from './js/storage.js';
         import { AIHelper } from './js/ai.js';
 
-        let scenes = NovelStorage.load();
-        let activeIdx = scenes.length > 0 ? 0 : -1;
+        let scenes;
+        let characters;
+        let activeIdx;
         let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
+
+        // Initialize the app
+        async function initApp() {
+            const statusEl = document.getElementById('cloud-status');
+            // Cloud Sync Initialization
+            try {
+                const isCloudEnabled = await NovelStorage.initCloud();
+                if (isCloudEnabled) {
+                    statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
+                    statusEl.style.color = '#fff';
+                } else {
+                    statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
+                }
+            } catch (error) {
+                console.error("Failed to initialize cloud storage:", error);
+                statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#f44336;"></span> Offline';
+            }
+
+            const projectData = await NovelStorage.load();
+            scenes = projectData.scenes;
+            characters = projectData.characters || [];
+
+            if (scenes.length === 0) {
+                document.getElementById('welcome-overlay').style.display = 'flex';
+            } else {
+                activeIdx = 0;
+                renderSidebar();
+                renderPalette();
+                updateSpeakerList();
+                selectScene(0);
+            }
+            applyMode();
+        }
+
+        initApp();
 
         const sidebar = document.getElementById('sidebar');
         const editorForm = document.getElementById('editor-form');
@@ -585,20 +792,43 @@
         // Mode DOM
         const modeOverlay = document.getElementById('mode-overlay');
 
-        // AI DOM elements
-        const aiOverlay = document.getElementById('ai-overlay');
-        const aiDialog = document.getElementById('ai-dialog');
-        const aiApiKey = document.getElementById('ai-api-key');
+        // AI DOM elements (Studio Panel)
+        const aiStudioPanel = document.getElementById('ai-studio-panel');
+        const btnAiClose = document.getElementById('btn-ai-close');
         const btnAiScript = document.getElementById('btn-ai-script');
         const btnAiGenImg = document.getElementById('btn-ai-gen-img');
-        const btnAiClose = document.getElementById('btn-ai-close');
-        const btnAiApply = document.getElementById('btn-ai-apply');
+        const btnAiCustom = document.getElementById('btn-ai-custom');
         const aiResult = document.getElementById('ai-result');
         const aiLoading = document.getElementById('ai-loading');
         const aiInitProgress = document.getElementById('ai-init-progress');
         const aiProgressVal = document.getElementById('ai-progress-val');
         const aiProgressBar = document.getElementById('ai-progress-bar');
         const aiProgressStatus = document.getElementById('ai-progress-status');
+        const btnAiApply = document.getElementById('btn-ai-apply');
+        const aiInstruction = document.getElementById('ai-instruction');
+
+        // Palette DOM
+        const paletteList = document.getElementById('palette-list');
+        const paletteName = document.getElementById('palette-name');
+        const paletteImg = document.getElementById('palette-img');
+        const paletteFile = document.getElementById('palette-file');
+        const btnPaletteAdd = document.getElementById('btn-palette-add');
+
+        // Scene Character DOM
+        const sceneCharsContainer = document.getElementById('scene-characters-container');
+        const btnAddSceneChar = document.getElementById('btn-add-scene-char');
+        const fieldShowName = document.getElementById('field-show-name');
+        const fieldSpeaker = document.getElementById('field-speaker');
+
+        // Expression Manager DOM
+        const expManager = document.getElementById('expression-manager');
+        const expTargetName = document.getElementById('exp-target-name');
+        const expList = document.getElementById('exp-list');
+        const expName = document.getElementById('exp-name');
+        const expImg = document.getElementById('exp-img');
+        const expFile = document.getElementById('exp-file');
+        const btnExpAdd = document.getElementById('btn-exp-add');
+        let currentExpTargetId = null;
 
         function applyMode() {
             document.querySelectorAll('.std-only').forEach(el => {
@@ -741,27 +971,42 @@
         }
 
         function selectScene(idx) {
+            if (activeIdx >= 0) {
+                saveData();
+            }
             activeIdx = idx;
-            renderSidebar();
             if (activeIdx === -1) {
                 editorForm.style.display = 'none';
                 noSceneMsg.style.display = 'block';
             } else {
                 editorForm.style.display = 'flex';
                 noSceneMsg.style.display = 'none';
-                const s = scenes[activeIdx];
-                fieldText.value = s.text;
-                fieldBg.value = s.bg;
-                fieldNote.value = s.note;
+                const s = scenes[idx];
+
+                fieldText.value = s.text || '';
+                fieldBg.value = s.bg || '';
+                fieldNote.value = s.note || '';
                 fieldFade.value = s.fade || 1.0;
                 valFade.textContent = fieldFade.value;
                 fieldAudio.value = s.audio || '';
                 fieldSe.value = s.se || '';
+                fieldShowName.checked = s.showName || false;
+                updateSpeakerList();
+                fieldSpeaker.value = s.speaker || '';
 
-                // Load choices
+                // Render Choices
                 choicesContainer.innerHTML = '';
-                (s.choices || []).forEach(c => addChoiceField(c.text, c.target));
+                if (s.choices) {
+                    s.choices.forEach(c => addChoiceField(c.text, c.target));
+                }
 
+                // Render Scene Characters
+                sceneCharsContainer.innerHTML = '';
+                if (s.characters) {
+                    s.characters.forEach(sc => addSceneCharacter(sc));
+                }
+
+                renderSidebar();
                 updatePreview();
             }
         }
@@ -791,35 +1036,254 @@
         }
 
         function deleteScene(idx) {
+            if (scenes.length <= 1) {
+                alert('これ以上削除できません');
+                return;
+            }
             if (!confirm('このシーンを削除しますか？')) return;
             scenes.splice(idx, 1);
-            if (activeIdx >= scenes.length) activeIdx = scenes.length - 1;
+            activeIdx = Math.min(activeIdx, scenes.length - 1);
             saveData();
+            renderSidebar();
             selectScene(activeIdx);
         }
 
         function saveData() {
-            if (activeIdx !== -1) {
-                const choices = [];
-                document.querySelectorAll('.choice-item').forEach(item => {
-                    choices.push({
-                        text: item.querySelector('.choice-text').value,
-                        target: parseInt(item.querySelector('.choice-target').value) || 0
-                    });
-                });
+            // 現在アクティブなシーンのデータを反映
+            if (activeIdx >= 0 && scenes[activeIdx]) {
+                scenes[activeIdx].text = fieldText.value;
+                scenes[activeIdx].bg = fieldBg.value;
+                scenes[activeIdx].note = fieldNote.value;
+                scenes[activeIdx].fade = parseFloat(fieldFade.value);
+                scenes[activeIdx].audio = fieldAudio.value;
+                scenes[activeIdx].se = fieldSe.value;
+                scenes[activeIdx].showName = fieldShowName.checked;
+                scenes[activeIdx].speaker = fieldSpeaker.value;
 
-                scenes[activeIdx] = {
-                    text: fieldText.value,
-                    bg: fieldBg.value,
-                    note: fieldNote.value,
-                    fade: parseFloat(fieldFade.value) || 1.0,
-                    audio: fieldAudio.value,
-                    se: fieldSe.value,
-                    choices: choices
-                };
+                // Choices
+                const choiceInputs = choicesContainer.querySelectorAll('.choice-item');
+                scenes[activeIdx].choices = Array.from(choiceInputs).map(div => ({
+                    text: div.querySelector('.choice-text').value,
+                    target: parseInt(div.querySelector('.choice-target').value) || 0
+                }));
+
+                // Scene Characters
+                const charItems = sceneCharsContainer.querySelectorAll('.scene-char-item');
+                scenes[activeIdx].characters = Array.from(charItems).map(div => ({
+                    id: div.querySelector('.scene-char-select').value,
+                    expression: div.querySelector('.scene-char-exp').value,
+                    x: parseInt(div.querySelector('.scene-char-x').value) || 0,
+                    y: parseInt(div.querySelector('.scene-char-y').value) || 0,
+                    z: parseInt(div.querySelector('.scene-char-z').value) || 0
+                }));
             }
-            NovelStorage.save(scenes);
+            NovelStorage.save(scenes, characters);
         }
+
+        // --- Character Palette Management ---
+        function renderPalette() {
+            paletteList.innerHTML = '';
+            characters.forEach((char, idx) => {
+                const item = document.createElement('div');
+                item.style = 'background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem;';
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <img src="${char.img || 'https://via.placeholder.com/30'}" style="width: 24px; height: 24px; object-fit: cover; border-radius: 2px;">
+                            <span style="font-weight: bold;">${char.name}</span>
+                        </div>
+                        <div style="display: flex; gap: 0.3rem;">
+                            <button class="btn-palette-exp" style="background: #444; color: #fff; padding: 0.1rem 0.4rem; font-size: 0.65rem;">表情 (${(char.expressions || []).length})</button>
+                            <button class="btn-palette-del" style="background: transparent; color: #ff5252; padding: 0;">✕</button>
+                        </div>
+                    </div>
+                `;
+                item.querySelector('.btn-palette-exp').onclick = () => openExpressionManager(char.id);
+                item.querySelector('.btn-palette-del').onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`キャラクター「${char.name}」をパレットから削除しますか？`)) {
+                        characters.splice(idx, 1);
+                        renderPalette();
+                        updateSpeakerList();
+                        saveData();
+                    }
+                };
+                paletteList.appendChild(item);
+            });
+        }
+
+        function openExpressionManager(charId) {
+            const char = characters.find(c => c.id === charId);
+            if (!char) return;
+            currentExpTargetId = charId;
+            expTargetName.textContent = `表情設定: ${char.name}`;
+            expManager.style.display = 'block';
+            renderExpressions();
+        }
+
+        function renderExpressions() {
+            const char = characters.find(c => c.id === currentExpTargetId);
+            if (!char) return;
+            expList.innerHTML = '';
+            (char.expressions || []).forEach((exp, idx) => {
+                const item = document.createElement('div');
+                item.style = 'display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.7rem;';
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <img src="${exp.img}" style="width: 18px; height: 18px; object-fit: cover;">
+                        <span>${exp.name}</span>
+                    </div>
+                    <button class="btn-exp-del" style="background:transparent; color:#ff5252; padding:0;">✕</button>
+                `;
+                item.querySelector('.btn-exp-del').onclick = () => {
+                    char.expressions.splice(idx, 1);
+                    renderExpressions();
+                    renderPalette();
+                    saveData();
+                };
+                expList.appendChild(item);
+            });
+        }
+
+        btnExpAdd.onclick = () => {
+            const name = expName.value.trim();
+            const img = expImg.value.trim();
+            if (!name || !img) return alert('名前と画像URLを入力してください');
+            const char = characters.find(c => c.id === currentExpTargetId);
+            if (!char) return;
+            if (!char.expressions) char.expressions = [];
+            char.expressions.push({ name, img });
+            expName.value = '';
+            expImg.value = '';
+            renderExpressions();
+            renderPalette();
+            saveData();
+        };
+
+        expFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                expImg.value = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        btnPaletteAdd.onclick = () => {
+            const name = paletteName.value.trim();
+            const img = paletteImg.value.trim();
+            if (!name) return alert('名前を入力してください');
+            characters.push({ id: 'char_' + Date.now(), name, img, expressions: [] });
+            paletteName.value = '';
+            paletteImg.value = '';
+            renderPalette();
+            updateSpeakerList();
+            saveData();
+        };
+
+        paletteFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                paletteImg.value = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        function updateSpeakerList() {
+            const currentVal = fieldSpeaker.value;
+            fieldSpeaker.innerHTML = '<option value="">（話し手を選択）</option>';
+            characters.forEach(char => {
+                const opt = document.createElement('option');
+                opt.value = char.name;
+                opt.textContent = char.name;
+                fieldSpeaker.appendChild(opt);
+            });
+            fieldSpeaker.value = currentVal;
+        }
+
+        // --- Scene Character Management ---
+        function addSceneCharacter(charData = null) {
+            const item = document.createElement('div');
+            item.className = 'scene-char-item';
+            item.style = 'background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 6px; display: grid; gap: 0.5rem;';
+
+            // Header: Select Character
+            const header = document.createElement('div');
+            header.style = 'display: flex; justify-content: space-between; align-items: center;';
+            header.innerHTML = `
+                <select class="scene-char-select" style="font-size: 0.75rem; padding: 0.3rem; flex: 1; margin-right: 0.5rem;">
+                    <option value="">(キャラ未選択)</option>
+                    ${characters.map(c => `<option value="${c.id}" ${charData && charData.id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                </select>
+                <button class="btn-scene-char-del" style="background: transparent; color: #ff5252; padding: 0.2rem;">✕</button>
+            `;
+
+            // Body: Expression, X, Y, Z
+            const body = document.createElement('div');
+            body.style = 'display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center;';
+
+            const expSelect = document.createElement('select');
+            expSelect.className = 'scene-char-exp';
+            expSelect.style = 'font-size: 0.75rem; padding: 0.3rem;';
+            const updateExps = (charId) => {
+                const char = characters.find(c => c.id === charId);
+                expSelect.innerHTML = '<option value="">(基本表情)</option>';
+                if (char && char.expressions) {
+                    char.expressions.forEach(e => {
+                        const opt = document.createElement('option');
+                        opt.value = e.name;
+                        opt.textContent = e.name;
+                        if (charData && charData.expression === e.name) opt.selected = true;
+                        expSelect.appendChild(opt);
+                    });
+                }
+            };
+
+            const controls = document.createElement('div');
+            controls.style = 'display: flex; gap: 0.3rem; align-items: center;';
+            controls.innerHTML = `
+                <span style="font-size: 0.7rem; color: #888;">X:</span>
+                <input type="number" class="scene-char-x" value="${charData ? charData.x : 50}" style="width: 45px; padding: 0.2rem; font-size: 0.75rem;">
+                <span style="font-size: 0.7rem; color: #888;">Y:</span>
+                <input type="number" class="scene-char-y" value="${charData ? charData.y : 90}" style="width: 45px; padding: 0.2rem; font-size: 0.75rem;">
+                <span style="font-size: 0.7rem; color: #888;">Z:</span>
+                <input type="number" class="scene-char-z" value="${charData ? (charData.z || 0) : 0}" style="width: 40px; padding: 0.2rem; font-size: 0.75rem;" title="重ね順（大きいほど手前）">
+            `;
+
+            body.appendChild(expSelect);
+            body.appendChild(controls);
+            item.appendChild(header);
+            item.appendChild(body);
+
+            const charSelect = item.querySelector('.scene-char-select');
+            charSelect.onchange = () => {
+                updateExps(charSelect.value);
+                saveData();
+                updatePreview();
+            };
+            updateExps(charSelect.value);
+
+            item.querySelector('.btn-scene-char-del').onclick = () => {
+                item.remove();
+                saveData();
+                updatePreview();
+            };
+            item.querySelectorAll('input, select').forEach(el => {
+                el.onchange = () => { saveData(); updatePreview(); };
+            });
+
+            sceneCharsContainer.appendChild(item);
+            updatePreview();
+        }
+
+        btnAddSceneChar.onclick = () => {
+            addSceneCharacter();
+            saveData();
+            updatePreview();
+        };
 
         document.getElementById('btn-add-scene').onclick = () => {
             scenes.push({
@@ -877,14 +1341,127 @@
             reader.readAsText(file);
         };
 
+        function updatePreview() {
+            if (activeIdx < 0 || !scenes[activeIdx]) return;
+            const s = scenes[activeIdx];
+
+            // Background
+            preview.style.backgroundImage = s.bg ? `url(${s.bg})` : 'none';
+
+            // Text
+            previewMsg.firstChild.nextSibling ? (previewMsg.lastChild.textContent = s.text) : (previewMsg.textContent = s.text);
+            // Handle name label separately to avoid clearing it
+            const nameLabel = document.getElementById('preview-name');
+            if (s.showName && s.speaker) {
+                nameLabel.textContent = s.speaker;
+                nameLabel.style.display = 'block';
+                // If text was direct child, wrap it to preserve name label
+                if (previewMsg.childNodes.length === 1 && previewMsg.firstChild === nameLabel) {
+                    // only name label exists
+                } else {
+                    // Search for text node
+                    let textNode = Array.from(previewMsg.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+                    if (!textNode) {
+                        textNode = document.createTextNode(s.text);
+                        previewMsg.appendChild(textNode);
+                    } else {
+                        textNode.textContent = s.text;
+                    }
+                }
+            } else {
+                nameLabel.style.display = 'none';
+                let textNode = Array.from(previewMsg.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+                if (textNode) textNode.textContent = s.text;
+                else previewMsg.appendChild(document.createTextNode(s.text));
+            }
+
+            // Characters
+            const spriteLayer = document.getElementById('sprite-layer');
+            spriteLayer.innerHTML = '';
+            if (s.characters) {
+                // Z-order sort
+                const sorted = [...s.characters].sort((a, b) => (a.z || 0) - (b.z || 0));
+
+                sorted.forEach(sc => {
+                    const charDef = characters.find(c => c.id === sc.id);
+                    if (charDef) {
+                        // Choose image (Expression vs Base)
+                        let imgSrc = charDef.img;
+                        if (sc.expression && charDef.expressions) {
+                            const exp = charDef.expressions.find(e => e.name === sc.expression);
+                            if (exp) imgSrc = exp.img;
+                        }
+
+                        if (imgSrc) {
+                            const img = document.createElement('img');
+                            img.src = imgSrc;
+                            img.className = 'preview-sprite';
+                            img.style.left = `${sc.x}%`;
+                            img.style.bottom = `${100 - sc.y}%`;
+                            img.style.height = 'auto';
+                            img.style.maxHeight = '90%';
+                            img.style.zIndex = sc.z || 0;
+                            img.style.cursor = 'move';
+                            img.style.pointerEvents = 'auto';
+
+                            // Drag move in preview
+                            img.onmousedown = (e) => {
+                                e.preventDefault();
+                                const startX = e.clientX;
+                                const startY = e.clientY;
+                                const startPosX = sc.x;
+                                const startPosY = sc.y;
+                                const rect = preview.getBoundingClientRect();
+
+                                const onMouseMove = (moveEv) => {
+                                    const dx = ((moveEv.clientX - startX) / rect.width) * 100;
+                                    const dy = ((moveEv.clientY - startY) / rect.height) * 100;
+                                    sc.x = Math.round(startPosX + dx);
+                                    sc.y = Math.round(startPosY + dy);
+
+                                    // Update inputs UI
+                                    const items = Array.from(sceneCharsContainer.querySelectorAll('.scene-char-item'));
+                                    // Find item matching character ID AND matching current expression (to be unique enough)
+                                    const charItem = items.find(div => div.querySelector('.scene-char-select').value === sc.id && div.querySelector('.scene-char-exp').value === (sc.expression || ''));
+                                    if (charItem) {
+                                        charItem.querySelector('.scene-char-x').value = sc.x;
+                                        charItem.querySelector('.scene-char-y').value = sc.y;
+                                    }
+                                    updatePreview();
+                                };
+
+                                const onMouseUp = () => {
+                                    document.removeEventListener('mousemove', onMouseMove);
+                                    document.removeEventListener('mouseup', onMouseUp);
+                                    saveData();
+                                };
+
+                                document.addEventListener('mousemove', onMouseMove);
+                                document.addEventListener('mouseup', onMouseUp);
+                            };
+
+                            spriteLayer.appendChild(img);
+                        }
+                    }
+                });
+            }
+        }
+
         // Auto save on input
-        [fieldText, fieldBg, fieldNote, fieldFade, fieldAudio, fieldSe].forEach(el => {
+        [fieldText, fieldBg, fieldNote, fieldFade, fieldAudio, fieldSe, fieldShowName, fieldSpeaker].forEach(el => {
             el.oninput = () => {
                 if (el === fieldFade) valFade.textContent = fieldFade.value;
                 updatePreview();
                 saveData();
                 renderSidebar();
             };
+            if (el.tagName === 'SELECT' || el.type === 'checkbox') {
+                el.onchange = () => {
+                    updatePreview();
+                    saveData();
+                    renderSidebar();
+                };
+            }
         });
 
         // Audio Test Helper
@@ -984,48 +1561,60 @@
                     aiInitProgress.style.display = 'none';
                     btnAiScript.disabled = false;
                     btnAiGenImg.disabled = false;
+                    btnAiCustom.disabled = false; // Added btnAiCustom
                     btnAiScript.style.opacity = "1";
                     btnAiGenImg.style.opacity = "1";
+                    btnAiCustom.style.opacity = "1"; // Added btnAiCustom
                 }, 500);
             }
         }
 
-        // AI Assistant Events
         btnAiAssist.onclick = async () => {
-            aiOverlay.style.display = 'block';
-            aiDialog.style.display = 'flex';
-            aiResult.style.display = 'none';
-            btnAiApply.style.display = 'none';
+            const isVisible = getComputedStyle(aiStudioPanel).display !== 'none';
+            if (isVisible) {
+                aiStudioPanel.style.display = 'none';
+                return;
+            }
+
+            aiStudioPanel.style.display = 'block';
+            aiResult.style.display = 'none'; // Reset result display
+            btnAiApply.style.display = 'none'; // Reset apply button display
 
             // AIの初期化状態を確認
             if (!AIHelper.isReady()) {
                 // 未ロードの場合のみ無効化してロード開始
                 btnAiScript.disabled = true;
                 btnAiGenImg.disabled = true;
+                btnAiCustom.disabled = true;
                 btnAiScript.style.opacity = "0.5";
                 btnAiGenImg.style.opacity = "0.5";
+                btnAiCustom.style.opacity = "0.5";
 
                 try {
                     await AIHelper.init(updateAIProgress);
                 } catch (err) {
                     alert('AIの初期化に失敗しました: ' + err.message);
+                    // Re-enable buttons on error
                     btnAiScript.disabled = false;
                     btnAiGenImg.disabled = false;
+                    btnAiCustom.disabled = false;
                     btnAiScript.style.opacity = "1";
                     btnAiGenImg.style.opacity = "1";
+                    btnAiCustom.style.opacity = "1";
                 }
             } else {
                 // ロード済みの場合は有効化を確認
                 btnAiScript.disabled = false;
                 btnAiGenImg.disabled = false;
+                btnAiCustom.disabled = false;
                 btnAiScript.style.opacity = "1";
                 btnAiGenImg.style.opacity = "1";
+                btnAiCustom.style.opacity = "1";
             }
         };
 
         btnAiClose.onclick = () => {
-            aiOverlay.style.display = 'none';
-            aiDialog.style.display = 'none';
+            aiStudioPanel.style.display = 'none';
         };
 
         async function handleAI(type) {
@@ -1037,8 +1626,11 @@
                 if (type === 'script') {
                     const history = scenes.slice(0, activeIdx).map(s => s.text);
                     prompt = AIHelper.getStoryPrompt(fieldText.value, history);
-                } else {
+                } else if (type === 'image') {
                     prompt = AIHelper.getImagePrompt(fieldText.value);
+                } else {
+                    // カスタム指示
+                    prompt = AIHelper.getCustomPrompt(aiInstruction.value, fieldText.value);
                 }
 
                 const result = await AIHelper.callAPI(prompt, updateAIProgress);
@@ -1054,15 +1646,17 @@
 
         btnAiScript.onclick = () => handleAI('script');
         btnAiGenImg.onclick = () => handleAI('image');
+        btnAiCustom.onclick = () => handleAI('custom');
 
         btnAiApply.onclick = () => {
             fieldText.value = aiResult.value;
-            updatePreview();
             saveData();
-            btnAiClose.onclick();
+            updatePreview();
+            alert('AIの生成結果を本文に適用しました！');
         };
 
         // Init
+        renderPalette();
         applyMode();
         if (scenes.length === 0) {
             modeOverlay.style.display = 'flex';
