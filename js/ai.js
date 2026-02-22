@@ -27,6 +27,10 @@ export const AIHelper = {
         return initPromise;
     },
 
+    isReady() {
+        return generator !== null;
+    },
+
     async callAPI(prompt, onProgress) {
         if (!generator) {
             if (initPromise) {
@@ -44,8 +48,11 @@ export const AIHelper = {
 
         const output = await generator(prompt, {
             max_new_tokens: 100,
-            temperature: 0.7,
+            do_sample: true, // 多様性を出すためにサンプリングを有効化
+            temperature: 0.8,
             repetition_penalty: 1.2,
+            top_k: 40,
+            top_p: 0.9,
         });
 
         return output[0].generated_text.replace(prompt, "").trim();
