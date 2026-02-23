@@ -226,46 +226,52 @@
             const fadeMs = fadeSeconds * 1000;
 
             isTransitioning = true;
-            choiceLayer.style.display = 'none';
+            if (choiceLayer) choiceLayer.style.display = 'none';
 
-            overlay.style.transition = `opacity ${fadeSeconds}s`;
-            overlay.style.opacity = 1;
+            if (overlay) {
+                overlay.style.transition = `opacity ${fadeSeconds}s`;
+                overlay.style.opacity = 1;
+            }
 
             setTimeout(() => {
-                bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
-                textContent.textContent = scene.text;
+                if (bgImage) bgImage.style.backgroundImage = `url(${scene.bg || ''})`;
+                if (textContent) textContent.textContent = scene.text;
 
                 const nameLabel = document.getElementById('name-label');
-                if (scene.showName && scene.speaker) {
-                    nameLabel.textContent = scene.speaker;
-                    nameLabel.style.display = 'block';
-                } else {
-                    nameLabel.style.display = 'none';
+                if (nameLabel) {
+                    if (scene.showName && scene.speaker) {
+                        nameLabel.textContent = scene.speaker;
+                        nameLabel.style.display = 'block';
+                    } else {
+                        nameLabel.style.display = 'none';
+                    }
                 }
 
                 const spriteLayer = document.getElementById('sprite-layer');
-                spriteLayer.innerHTML = '';
-                if (scene.characters) {
-                    const sorted = [...scene.characters].sort((a, b) => (a.z || 0) - (b.z || 0));
-                    sorted.forEach(sc => {
-                        const charDef = characters.find(c => c.id === sc.id);
-                        if (charDef) {
-                            let imgSrc = charDef.img;
-                            if (sc.expression && charDef.expressions) {
-                                const exp = charDef.expressions.find(e => e.name === sc.expression);
-                                if (exp) imgSrc = exp.img;
+                if (spriteLayer) {
+                    spriteLayer.innerHTML = '';
+                    if (scene.characters) {
+                        const sorted = [...scene.characters].sort((a, b) => (a.z || 0) - (b.z || 0));
+                        sorted.forEach(sc => {
+                            const charDef = characters.find(c => c.id === sc.id);
+                            if (charDef) {
+                                let imgSrc = charDef.img;
+                                if (sc.expression && charDef.expressions) {
+                                    const exp = charDef.expressions.find(e => e.name === sc.expression);
+                                    if (exp) imgSrc = exp.img;
+                                }
+                                if (imgSrc) {
+                                    const img = document.createElement('img');
+                                    img.src = imgSrc;
+                                    img.className = 'character-sprite';
+                                    img.style.left = `${sc.x}%`;
+                                    img.style.bottom = `${100 - sc.y}%`;
+                                    img.style.zIndex = sc.z || 0;
+                                    spriteLayer.appendChild(img);
+                                }
                             }
-                            if (imgSrc) {
-                                const img = document.createElement('img');
-                                img.src = imgSrc;
-                                img.className = 'character-sprite';
-                                img.style.left = `${sc.x}%`;
-                                img.style.bottom = `${100 - sc.y}%`;
-                                img.style.zIndex = sc.z || 0;
-                                spriteLayer.appendChild(img);
-                            }
-                        }
-                    });
+                        });
+                    }
                 }
 
                 if (scene.audio === '停止' || scene.audio === 'stop') {
@@ -284,30 +290,31 @@
                     se.play().catch(e => console.log("SE play blocked", e));
                 }
 
-                bgImage.classList.remove('slow-zoom');
-                void bgImage.offsetWidth;
-                bgImage.classList.add('slow-zoom');
+                if (bgImage) {
+                    bgImage.classList.remove('slow-zoom');
+                    void bgImage.offsetWidth;
+                    bgImage.classList.add('slow-zoom');
+                }
 
-                overlay.style.opacity = 0;
+                if (overlay) overlay.style.opacity = 0;
             }, fadeMs);
         }
 
         function showChoices(choices) {
+            if (!choiceLayer) return;
             choiceLayer.innerHTML = '';
             choiceLayer.style.display = 'flex';
-            clickHint.style.display = 'none';
+            if (clickHint) clickHint.style.display = 'none';
             choices.forEach(c => {
                 const btn = document.createElement('div');
                 btn.className = 'choice-btn';
                 btn.textContent = c.text;
                 btn.onclick = (e) => {
                     e.stopPropagation();
-                    // Supports both direct indices and potentially ID strings in future
                     const target = parseInt(c.target);
                     if (!isNaN(target)) {
                         currentIdx = target;
                     } else {
-                        // fallback or search by title if needed
                         console.warn("Invalid jump target:", c.target);
                     }
                     renderScene();
@@ -316,17 +323,19 @@
             });
         }
 
-        overlay.ontransitionend = () => {
-            if (overlay.style.opacity === "0") {
-                isTransitioning = false;
-                const scene = scenes[currentIdx];
-                if (scene.choices && scene.choices.length > 0) {
-                    showChoices(scene.choices);
-                } else {
-                    clickHint.style.display = 'block';
+        if (overlay) {
+            overlay.ontransitionend = () => {
+                if (overlay.style.opacity === "0") {
+                    isTransitioning = false;
+                    const scene = scenes[currentIdx];
+                    if (scene.choices && scene.choices.length > 0) {
+                        showChoices(scene.choices);
+                    } else {
+                        if (clickHint) clickHint.style.display = 'block';
+                    }
                 }
-            }
-        };
+            };
+        }
 
         function next() {
             if (isTransitioning) return;

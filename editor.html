@@ -758,21 +758,23 @@
         let activeIdx = -1;
         let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
 
-        // Initialize the app
+        // Initialize the app after DOM elements are defined below
         async function initApp() {
             const statusEl = document.getElementById('cloud-status');
             // Cloud Sync Initialization
-            try {
-                const isCloudEnabled = await NovelStorage.initCloud();
-                if (isCloudEnabled) {
-                    statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
-                    statusEl.style.color = '#fff';
-                } else {
-                    statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
+            if (statusEl) {
+                try {
+                    const isCloudEnabled = await NovelStorage.initCloud();
+                    if (isCloudEnabled) {
+                        statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
+                        statusEl.style.color = '#fff';
+                    } else {
+                        statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
+                    }
+                } catch (error) {
+                    console.error("Failed to initialize cloud storage:", error);
+                    statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#f44336;"></span> Offline';
                 }
-            } catch (error) {
-                console.error("Failed to initialize cloud storage:", error);
-                statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#f44336;"></span> Offline';
             }
 
             const projectData = await NovelStorage.load();
@@ -875,61 +877,81 @@
                 if (currentMode === 'standard') el.classList.remove('hidden');
                 else el.classList.add('hidden');
             });
-            if (currentMode === 'standard') {
-                btnAiAssist.classList.add('hidden');
-            } else {
-                btnAiAssist.classList.remove('hidden');
+            if (btnAiAssist) {
+                if (currentMode === 'standard') {
+                    btnAiAssist.classList.add('hidden');
+                } else {
+                    btnAiAssist.classList.remove('hidden');
+                }
             }
             localStorage.setItem('editor_mode', currentMode);
         }
 
         // Mode events
-        document.getElementById('mode-ai').onclick = () => { currentMode = 'ai'; applyMode(); modeOverlay.style.display = 'none'; };
-        document.getElementById('mode-standard').onclick = () => { currentMode = 'standard'; applyMode(); modeOverlay.style.display = 'none'; };
-        btnSwitchMode.onclick = () => modeOverlay.style.display = 'flex';
+        const modeAi = document.getElementById('mode-ai');
+        if (modeAi) modeAi.onclick = () => { currentMode = 'ai'; applyMode(); if (modeOverlay) modeOverlay.style.display = 'none'; };
+
+        const modeStandard = document.getElementById('mode-standard');
+        if (modeStandard) modeStandard.onclick = () => { currentMode = 'standard'; applyMode(); if (modeOverlay) modeOverlay.style.display = 'none'; };
+
+        if (btnSwitchMode) btnSwitchMode.onclick = () => { if (modeOverlay) modeOverlay.style.display = 'flex'; };
 
         // Welcome action events
-        document.getElementById('btn-start-scratch').onclick = () => {
-            document.getElementById('btn-add-scene').click();
-            document.getElementById('welcome-overlay').style.display = 'none';
-            document.getElementById('editor-form').style.display = 'grid';
-        };
+        const btnStartScratch = document.getElementById('btn-start-scratch');
+        if (btnStartScratch) {
+            btnStartScratch.onclick = () => {
+                const btnAddScene = document.getElementById('btn-add-scene');
+                if (btnAddScene) btnAddScene.click();
+                const welcomeOverlay = document.getElementById('welcome-overlay');
+                if (welcomeOverlay) welcomeOverlay.style.display = 'none';
+                if (editorForm) editorForm.style.display = 'grid';
+            };
+        }
 
-        document.getElementById('btn-start-sample').onclick = async () => {
-            const res = await NovelStorage.loadSample();
-            if (res) {
-                scenes = res.scenes;
-                characters = res.characters || [];
-                activeIdx = 0;
-                document.getElementById('welcome-overlay').style.display = 'none';
-                document.getElementById('editor-form').style.display = 'grid';
-                renderSidebar();
-                renderPalette();
-                updateSpeakerList();
-                selectScene(0);
-                saveData(); // クラウドに即時同期
-            } else {
-                alert("サンプルの読み込みに失敗しました。");
-            }
-        };
+        const btnStartSample = document.getElementById('btn-start-sample');
+        if (btnStartSample) {
+            btnStartSample.onclick = async () => {
+                const res = await NovelStorage.loadSample();
+                if (res) {
+                    scenes = res.scenes;
+                    characters = res.characters || [];
+                    activeIdx = 0;
+                    const welcomeOverlay = document.getElementById('welcome-overlay');
+                    if (welcomeOverlay) welcomeOverlay.style.display = 'none';
+                    if (editorForm) editorForm.style.display = 'grid';
+                    renderSidebar();
+                    renderPalette();
+                    updateSpeakerList();
+                    selectScene(0);
+                    saveData(); // クラウドに即時同期
+                } else {
+                    alert("サンプルの読み込みに失敗しました。");
+                }
+            };
+        }
 
         // Hamburger Menu Logic
         const hamburger = document.getElementById('hamburger');
         const headerControls = document.getElementById('header-controls');
 
-        hamburger.onclick = (e) => {
-            e.stopPropagation();
-            headerControls.classList.toggle('mobile-open');
-            hamburger.textContent = headerControls.classList.contains('mobile-open') ? '✕' : '☰';
-        };
+        if (hamburger && headerControls) {
+            hamburger.onclick = (e) => {
+                e.stopPropagation();
+                headerControls.classList.toggle('mobile-open');
+                hamburger.textContent = headerControls.classList.contains('mobile-open') ? '✕' : '☰';
+            };
 
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (headerControls.classList.contains('mobile-open') && !headerControls.contains(e.target) && e.target !== hamburger) {
-                headerControls.classList.remove('mobile-open');
-                hamburger.textContent = '☰';
-            }
-        });
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (headerControls.classList.contains('mobile-open') && !headerControls.contains(e.target) && e.target !== hamburger) {
+                    headerControls.classList.remove('mobile-open');
+                    hamburger.textContent = '☰';
+                }
+            });
+        }
+
+        // Start initialization after all is defined
+        initApp();
 
         let draggedIdx = -1;
 
@@ -1225,52 +1247,60 @@
             });
         }
 
-        btnExpAdd.onclick = () => {
-            const name = expName.value.trim();
-            const img = expImg.value.trim();
-            if (!name || !img) return alert('名前と画像URLを入力してください');
-            const char = characters.find(c => c.id === currentExpTargetId);
-            if (!char) return;
-            if (!char.expressions) char.expressions = [];
-            char.expressions.push({ name, img });
-            expName.value = '';
-            expImg.value = '';
-            renderExpressions();
-            renderPalette();
-            saveData();
-        };
-
-        expFile.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                expImg.value = event.target.result;
+        if (btnExpAdd) {
+            btnExpAdd.onclick = () => {
+                const name = expName.value.trim();
+                const img = expImg.value.trim();
+                if (!name || !img) return alert('名前と画像URLを入力してください');
+                const char = characters.find(c => c.id === currentExpTargetId);
+                if (!char) return;
+                if (!char.expressions) char.expressions = [];
+                char.expressions.push({ name, img });
+                expName.value = '';
+                expImg.value = '';
+                renderExpressions();
+                renderPalette();
+                saveData();
             };
-            reader.readAsDataURL(file);
-        };
+        }
 
-        btnPaletteAdd.onclick = () => {
-            const name = paletteName.value.trim();
-            const img = paletteImg.value.trim();
-            if (!name) return alert('名前を入力してください');
-            characters.push({ id: 'char_' + Date.now(), name, img, expressions: [] });
-            paletteName.value = '';
-            paletteImg.value = '';
-            renderPalette();
-            updateSpeakerList();
-            saveData();
-        };
-
-        paletteFile.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                paletteImg.value = event.target.result;
+        if (expFile) {
+            expFile.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    expImg.value = event.target.result;
+                };
+                reader.readAsDataURL(file);
             };
-            reader.readAsDataURL(file);
-        };
+        }
+
+        if (btnPaletteAdd) {
+            btnPaletteAdd.onclick = () => {
+                const name = paletteName.value.trim();
+                const img = paletteImg.value.trim();
+                if (!name) return alert('名前を入力してください');
+                characters.push({ id: 'char_' + Date.now(), name, img, expressions: [] });
+                paletteName.value = '';
+                paletteImg.value = '';
+                renderPalette();
+                updateSpeakerList();
+                saveData();
+            };
+        }
+
+        if (paletteFile) {
+            paletteFile.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    paletteImg.value = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+        }
 
         function updateSpeakerList() {
             const currentVal = fieldSpeaker.value;
@@ -1359,67 +1389,79 @@
             updatePreview();
         }
 
-        btnAddSceneChar.onclick = () => {
-            addSceneCharacter();
-            saveData();
-            updatePreview();
-        };
+        if (btnAddSceneChar) {
+            btnAddSceneChar.onclick = () => {
+                addSceneCharacter();
+                saveData();
+                updatePreview();
+            };
+        }
 
-        document.getElementById('btn-add-scene').onclick = () => {
-            scenes.push({
-                text: '新しいシーン',
-                bg: '',
-                note: '',
-                fade: 1.0,
-                audio: '',
-                se: '',
-                choices: []
-            });
-            activeIdx = scenes.length - 1;
-            saveData();
-            selectScene(activeIdx);
-        };
+        const btnAddScene = document.getElementById('btn-add-scene');
+        if (btnAddScene) {
+            btnAddScene.onclick = () => {
+                scenes.push({
+                    text: '新しいシーン',
+                    bg: '',
+                    note: '',
+                    fade: 1.0,
+                    audio: '',
+                    se: '',
+                    choices: []
+                });
+                activeIdx = scenes.length - 1;
+                renderSidebar();
+                selectScene(activeIdx);
+                saveData();
+            };
+        }
 
-        btnPlayNow.onclick = () => {
-            saveData();
-            window.location.href = 'play.html';
-        };
+        if (btnPlayNow) {
+            btnPlayNow.onclick = () => {
+                saveData();
+                window.location.href = 'play.html';
+            };
+        }
 
         // Export
-        btnExport.onclick = () => {
-            const dataStr = JSON.stringify(scenes, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `novel_project_${new Date().getTime()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
+        if (btnExport) {
+            btnExport.onclick = () => {
+                const dataStr = JSON.stringify(scenes, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `novel_project_${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+        }
 
         // Import
-        btnImport.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (Array.isArray(data)) {
-                        scenes = data;
-                        saveData();
-                        activeIdx = 0;
-                        selectScene(0);
-                        alert('インポート完了しました！');
-                    } else {
-                        throw new Error('不正な形式です。');
+        if (btnImport) {
+            btnImport.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (Array.isArray(data)) {
+                            scenes = data;
+                            saveData();
+                            activeIdx = 0;
+                            selectScene(0);
+                            alert('インポート完了しました！');
+                        } else {
+                            throw new Error('不正な形式です。');
+                        }
+                    } catch (err) {
+                        alert('エラー: ' + err.message);
                     }
-                } catch (err) {
-                    alert('エラー: ' + err.message);
-                }
+                };
+                reader.readAsText(file);
             };
-            reader.readAsText(file);
-        };
+        }
 
         function updatePreview() {
             if (activeIdx < 0 || !scenes[activeIdx]) return;

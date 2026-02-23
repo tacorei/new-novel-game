@@ -261,23 +261,30 @@
         }
 
         // --- New Project Flow ---
-        btnNew.onclick = () => {
-            inputTitle.value = '';
-            inputAssets.value = '';
-            labelAssetCount.textContent = '選択されていません';
-            modalNew.style.display = 'flex';
-        };
+        if (btnNew) {
+            btnNew.onclick = () => {
+                if (inputTitle) inputTitle.value = '';
+                if (inputAssets) inputAssets.value = '';
+                if (labelAssetCount) labelAssetCount.textContent = '選択されていません';
+                if (modalNew) modalNew.style.display = 'flex';
+            };
+        }
 
-        btnCloseModal.onclick = () => {
-            modalNew.style.display = 'none';
-        };
+        if (btnCloseModal) {
+            btnCloseModal.onclick = () => {
+                if (modalNew) modalNew.style.display = 'none';
+            };
+        }
 
-        inputAssets.onchange = (e) => {
-            const count = e.target.files.length;
-            labelAssetCount.textContent = count > 0 ? `${count} 個のファイルを選択中` : '選択されていません';
-        };
+        if (inputAssets) {
+            inputAssets.onchange = (e) => {
+                const count = e.target.files.length;
+                if (labelAssetCount) labelAssetCount.textContent = count > 0 ? `${count} 個のファイルを選択中` : '選択されていません';
+            };
+        }
 
         async function processAssets() {
+            if (!inputAssets) return [];
             const files = Array.from(inputAssets.files);
             const characters = [];
             for (const file of files) {
@@ -296,29 +303,35 @@
             return characters;
         }
 
-        btnCreateScratch.onclick = async () => {
-            const title = inputTitle.value.trim() || '無題の物語';
-            const characters = await processAssets();
-            const id = NovelStorage.createProject(title, false); // Create with initial scene
+        if (btnCreateScratch) {
+            btnCreateScratch.onclick = async () => {
+                const title = (inputTitle ? inputTitle.value.trim() : '') || '無題の物語';
+                const characters = await processAssets();
+                const id = NovelStorage.createProject(title, false); // Create with initial scene
 
-            if (characters.length > 0) {
-                const projectData = await NovelStorage.load();
-                NovelStorage.save(projectData.scenes, characters);
-            }
+                if (characters.length > 0) {
+                    const projectData = await NovelStorage.load();
+                    NovelStorage.save(projectData.scenes, characters);
+                }
 
-            window.location.href = 'editor.html';
-        };
+                window.location.href = 'editor.html';
+            };
+        }
 
-        btnCreateSample.onclick = async () => {
-            const title = inputTitle.value.trim() || 'サンプルプロジェクト';
-            await NovelStorage.loadSample(title);
-            window.location.href = 'editor.html';
-        };
+        if (btnCreateSample) {
+            btnCreateSample.onclick = async () => {
+                const title = (inputTitle ? inputTitle.value.trim() : '') || 'サンプルプロジェクト';
+                await NovelStorage.loadSample(title);
+                window.location.href = 'editor.html';
+            };
+        }
 
-        btnSample.onclick = async () => {
-            await NovelStorage.loadSample();
-            renderProjects();
-        };
+        if (btnSample) {
+            btnSample.onclick = async () => {
+                await NovelStorage.loadSample();
+                renderProjects();
+            };
+        }
 
         // Initialize
         renderProjects();
