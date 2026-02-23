@@ -310,10 +310,8 @@
         };
 
         btnCreateSample.onclick = async () => {
-            // サンプル読み込み時は、storage.js側のloadSampleに任せる
-            // ただし、タイトルが入力されていればそれを反映させたいが、loadSampleは固定
-            // ここではシンプルに既存のloadSampleを流用
-            await NovelStorage.loadSample();
+            const title = inputTitle.value.trim() || 'サンプルプロジェクト';
+            await NovelStorage.loadSample(title);
             window.location.href = 'editor.html';
         };
 

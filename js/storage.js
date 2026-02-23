@@ -65,7 +65,7 @@ const NovelStorage = {
   },
 
   // データを保存
-  save(scenes, characters = []) {
+  async save(scenes, characters = []) {
     const id = this.getActiveProjectId();
     if (!id) return;
     const projectData = { scenes, characters };
@@ -79,7 +79,7 @@ const NovelStorage = {
       this.saveProjectsList(list);
 
       // クラウド同期
-      CloudStorage.save(id, p.title, projectData);
+      await CloudStorage.save(id, p.title, projectData);
     }
   },
 
@@ -118,7 +118,7 @@ const NovelStorage = {
   },
 
   // サンプル読み込み
-  async loadSample() {
+  async loadSample(title = "サンプルプロジェクト") {
     try {
       const response = await fetch('sample.json');
       const data = await response.json();
@@ -133,8 +133,8 @@ const NovelStorage = {
         characters = data.characters || [];
       }
 
-      const id = this.createProject("サンプルプロジェクト", true); // 初期シーン作成をスキップ
-      this.save(scenes, characters);
+      const id = this.createProject(title, true); // 初期シーン作成をスキップ
+      await this.save(scenes, characters);
       return { id, scenes, characters };
     } catch (e) {
       console.error("Sample Load Error:", e);
