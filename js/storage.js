@@ -21,7 +21,7 @@ const NovelStorage = {
   },
 
   // 新規プロジェクトを作成
-  createProject(title) {
+  createProject(title, skipInitialScene = false) {
     const list = this.getProjects();
     const id = Date.now().toString();
     const newProject = {
@@ -33,8 +33,11 @@ const NovelStorage = {
     list.push(newProject);
     this.saveProjectsList(list);
     this.setActiveProjectId(id);
-    const initialScenes = [{ text: 'ここから物語がはじまります！ｗ', bg: '', note: '', fade: 1.0, audio: '', se: '', choices: [] }];
-    this.save(initialScenes, []); // 初期データを保存
+
+    if (!skipInitialScene) {
+      const initialScenes = [{ text: 'ここから物語がはじまります！ｗ', bg: '', note: '', fade: 1.0, audio: '', se: '', choices: [] }];
+      this.save(initialScenes, []); // 初期データを保存
+    }
     return id;
   },
 
@@ -130,7 +133,7 @@ const NovelStorage = {
         characters = data.characters || [];
       }
 
-      const id = this.createProject("サンプルプロジェクト");
+      const id = this.createProject("サンプルプロジェクト", true); // 初期シーン作成をスキップ
       this.save(scenes, characters);
       return { id, scenes, characters };
     } catch (e) {
