@@ -132,8 +132,8 @@
 
             #editor-form {
                 display: grid;
-                grid-template-columns: 450px 1fr;
-                /* Fixed width for fields, expansive preview */
+                grid-template-columns: 1fr 500px;
+                /* Preview takes most space (left), fields stay on right */
                 gap: 0;
                 height: 100%;
                 overflow: hidden;
@@ -142,7 +142,7 @@
             .editor-fields {
                 padding: 2rem;
                 overflow-y: auto;
-                border-right: 1px solid var(--box-border);
+                border-left: 1px solid var(--box-border);
             }
 
             .sticky-preview {
@@ -156,8 +156,9 @@
 
             .preview-box {
                 margin: 0;
-                width: 95%;
-                max-width: 1200px;
+                width: 100%;
+                max-width: none;
+                /* No restrict on max width for full utilization */
                 box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
             }
 
@@ -187,6 +188,8 @@
             color: white;
             font-size: 1rem;
             font-family: inherit;
+            width: 100%;
+            /* Fill the container */
         }
 
         textarea {

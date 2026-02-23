@@ -41,6 +41,36 @@
             max-width: 600px;
             padding: 3rem 2rem;
             text-align: center;
+            transition: max-width 0.3s ease-in-out;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1200px;
+                /* Expand on large screens */
+            }
+
+            #project-list {
+                display: grid !important;
+                grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+                gap: 1.5rem !important;
+                max-height: none !important;
+                /* Allow natural height on desktop */
+                padding: 1rem 0 !important;
+            }
+
+            .project-item {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                text-align: left;
+                gap: 1.5rem;
+                padding: 1.5rem !important;
+            }
+
+            .project-item .controls {
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
 
         h1 {
@@ -203,6 +233,7 @@
 
             projects.forEach(p => {
                 const item = document.createElement('div');
+                item.className = 'project-item';
                 item.style = `
                     background: rgba(255,255,255,0.05);
                     border: 1px solid ${p.id === activeId ? 'var(--accent-color)' : 'var(--box-border)'};
@@ -217,14 +248,14 @@
                 `;
 
                 item.innerHTML = `
-                    <div>
-                        <div style="font-weight: bold; font-size: 0.95rem; color: #fff;">${p.title}</div>
-                        <div style="font-size: 0.7rem; color: #666; margin-top: 0.2rem;">最終更新: ${new Date(p.updatedAt).toLocaleString()}</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 1.1rem; color: #fff;">${p.title}</div>
+                        <div style="font-size: 0.75rem; color: #888; margin-top: 0.4rem;">最終更新: ${new Date(p.updatedAt).toLocaleString()}</div>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn-edit" data-id="${p.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">編集</button>
-                        <button class="btn-play" data-id="${p.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; background: var(--accent-color); color: black;">プレイ</button>
-                        <button class="btn-del" data-id="${p.id}" style="padding: 0.4rem; font-size: 0.75rem; background: transparent; color: #666; width: auto; border: none;">🗑</button>
+                    <div class="controls" style="display: flex; gap: 0.5rem;">
+                        <button class="btn-edit" data-id="${p.id}" style="padding: 0.5rem 1rem; font-size: 0.8rem;">編集</button>
+                        <button class="btn-play" data-id="${p.id}" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: var(--accent-color); color: black;">Play</button>
+                        <button class="btn-del" data-id="${p.id}" style="padding: 0.4rem; font-size: 0.8rem; background: transparent; color: #666; width: auto; border: none;">🗑</button>
                     </div>
                 `;
 
