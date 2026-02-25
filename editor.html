@@ -468,6 +468,14 @@
                 style="font-size: 1.2rem; flex-grow: 1; text-align: center; color: #fff; font-weight: normal; margin: 0;">
                 ノベルエディター</h2>
 
+            <!-- ユーザーバッジ -->
+            <div id="auth-user-badge" style="display: none; align-items: center; gap: 0.4rem; margin-right: 0.5rem;">
+                <img id="auth-user-avatar" src="" alt=""
+                    style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover;">
+                <span id="auth-user-name"
+                    style="font-size: 0.7rem; color: #aaa; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+            </div>
+
             <button id="hamburger">☰</button>
 
             <div class="header-controls" id="header-controls">
@@ -758,6 +766,7 @@
 
     <script type="module">
         import NovelStorage from './js/storage.js';
+        import Auth from './js/auth.js';
         import { AIHelper } from './js/ai.js';
 
         let scenes = [];
@@ -773,8 +782,30 @@
                 try {
                     const isCloudEnabled = await NovelStorage.initCloud();
                     if (isCloudEnabled) {
-                        statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
-                        statusEl.style.color = '#fff';
+                        // 認証状態の確認
+                        await Auth.init();
+                        const user = Auth.getUser();
+
+                        if (user) {
+                            statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
+                            statusEl.style.color = '#fff';
+
+                            // ユーザーバッジの表示
+                            const badge = document.getElementById('auth-user-badge');
+                            const avatar = document.getElementById('auth-user-avatar');
+                            const name = document.getElementById('auth-user-name');
+                            if (badge) {
+                                badge.style.display = 'flex';
+                                if (avatar && user.user_metadata?.avatar_url) {
+                                    avatar.src = user.user_metadata.avatar_url;
+                                }
+                                if (name) {
+                                    name.textContent = user.user_metadata?.full_name || '';
+                                }
+                            }
+                        } else {
+                            statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Not Signed In';
+                        }
                     } else {
                         statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
                     }

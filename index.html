@@ -98,12 +98,101 @@
             padding: 1rem;
             font-weight: bold;
         }
+
+        /* Auth UI */
+        #auth-container {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        #auth-login {
+            display: flex;
+            align-items: center;
+        }
+
+        #btn-login {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--box-border);
+            color: #ccc;
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            width: auto;
+        }
+
+        #btn-login:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-color: var(--accent-color);
+        }
+
+        #auth-user {
+            display: none;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        #auth-user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            object-fit: cover;
+        }
+
+        #auth-user-name {
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+
+        #btn-logout {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #888;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+            width: auto;
+        }
+
+        #btn-logout:hover {
+            border-color: #d32f2f;
+            color: #d32f2f;
+        }
+
+        #cloud-status {
+            font-size: 0.7rem;
+            color: #555;
+            text-align: right;
+            margin-top: 0.3rem;
+        }
     </style>
 </head>
 
 <body>
     <div id="app" class="fade-in">
         <div class="container glass">
+            <!-- 認証UI -->
+            <div id="auth-container">
+                <div id="auth-login">
+                    <button id="btn-login">🔐 Googleでログイン</button>
+                </div>
+                <div id="auth-user">
+                    <img id="auth-user-avatar" src="" alt="avatar">
+                    <span id="auth-user-name"></span>
+                    <button id="btn-logout">ログアウト</button>
+                </div>
+            </div>
+
             <h1>Visual Novel Maker</h1>
             <p>
                 あなただけの物語を。作品が増えても安心の管理システム。
@@ -206,6 +295,10 @@
 
     <script type="module">
         import NovelStorage from './js/storage.js';
+        import Auth from './js/auth.js';
+
+        // 認証の初期化
+        Auth.init();
 
         const projectList = document.getElementById('project-list');
         const btnNew = document.getElementById('btn-new');
