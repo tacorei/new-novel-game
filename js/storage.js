@@ -4,23 +4,19 @@ const LIST_NAME = 'novel_projects_list';
 const DATA_PREFIX = 'novel_project_';
 
 const NovelStorage = {
-  // クラウド同期の初期化
   async initCloud() {
     return await CloudStorage.init();
   },
 
-  // プロジェクトリストを取得
   getProjects() {
     const data = localStorage.getItem(LIST_NAME);
     return data ? JSON.parse(data) : [];
   },
 
-  // プロジェクトリストを保存
   saveProjectsList(list) {
     localStorage.setItem(LIST_NAME, JSON.stringify(list));
   },
 
-  // 新規プロジェクトを作成
   createProject(title, skipInitialScene = false) {
     const list = this.getProjects();
     const id = Date.now().toString();
@@ -35,23 +31,30 @@ const NovelStorage = {
     this.setActiveProjectId(id);
 
     if (!skipInitialScene) {
-      const initialScenes = [{ text: 'ここから物語がはじまります！ｗ', bg: '', note: '', fade: 1.0, audio: '', se: '', choices: [] }];
-      this.save(initialScenes, []); // 初期データを保存
+      const initialScenes = [
+        {
+          text: 'Once upon a time, a new story begins.',
+          bg: '',
+          note: '',
+          fade: 1.0,
+          audio: '',
+          se: '',
+          choices: []
+        }
+      ];
+      this.save(initialScenes, []);
     }
     return id;
   },
 
-  // アクティブなプロジェクトIDを設定
   setActiveProjectId(id) {
     localStorage.setItem('active_project_id', id);
   },
 
-  // アクティブなプロジェクトIDを取得
   getActiveProjectId() {
     return localStorage.getItem('active_project_id');
   },
 
-  // プロジェクトの削除
   deleteProject(id) {
     let list = this.getProjects();
     list = list.filter(p => p.id !== id);
@@ -60,35 +63,28 @@ const NovelStorage = {
     if (this.getActiveProjectId() === id) {
       localStorage.removeItem('active_project_id');
     }
-    // クラウドからも削除
     CloudStorage.delete(id);
   },
 
-  // データを保存
   async save(scenes, characters = []) {
     const id = this.getActiveProjectId();
     if (!id) return;
     const projectData = { scenes, characters };
     localStorage.setItem(DATA_PREFIX + id, JSON.stringify(projectData));
 
-    // 更新日時を更新
     const list = this.getProjects();
     const p = list.find(item => item.id === id);
     if (p) {
       p.updatedAt = new Date().toISOString();
       this.saveProjectsList(list);
-
-      // クラウド同期
       await CloudStorage.save(id, p.title, projectData);
     }
   },
 
-  // データを読み込み
   async load() {
     const id = this.getActiveProjectId();
     if (!id) return { scenes: [], characters: [] };
 
-    // まずローカルから
     const raw = localStorage.getItem(DATA_PREFIX + id);
     let localData = { scenes: [], characters: [] };
 
@@ -108,7 +104,6 @@ const NovelStorage = {
       }
     }
 
-    // クラウドから最新を取得
     const cloudData = await CloudStorage.load(id);
     if (cloudData) {
       return cloudData;
@@ -117,8 +112,7 @@ const NovelStorage = {
     return localData;
   },
 
-  // サンプル読み込み
-  async loadSample(title = "サンプルプロジェクト") {
+  async loadSample(title = "Sample Project") {
     try {
       const response = await fetch('sample.json');
       const data = await response.json();
@@ -133,7 +127,7 @@ const NovelStorage = {
         characters = data.characters || [];
       }
 
-      const id = this.createProject(title, true); // 初期シーン作成をスキップ
+      const id = this.createProject(title, true);
       await this.save(scenes, characters);
       return { id, scenes, characters };
     } catch (e) {

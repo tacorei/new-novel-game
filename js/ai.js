@@ -1,4 +1,4 @@
-// Transformers.js を使用したブラウザ内蔵型AI
+// Browser-side AI helper using Transformers.js.
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
 let generator = null;
@@ -17,7 +17,7 @@ export const AIHelper = {
                     }
                 });
             } catch (err) {
-                initPromise = null; // 失敗時は再試行できるようにクリア
+                initPromise = null;
                 throw err;
             } finally {
                 if (generator) initPromise = null;
@@ -36,19 +36,17 @@ export const AIHelper = {
             if (initPromise) {
                 await initPromise;
             } else {
-                // 初期化が始まっていない場合は開始する
                 await this.init(onProgress);
             }
         }
 
-        // initが終わってもgeneratorがなければエラー（失敗時など）
         if (!generator) {
-            throw new Error("AIの初期化に失敗したか、準備が完了していません。");
+            throw new Error("AI init failed or not ready.");
         }
 
         const output = await generator(prompt, {
             max_new_tokens: 100,
-            do_sample: true, // 多様性を出すためにサンプリングを有効化
+            do_sample: true,
             temperature: 0.8,
             repetition_penalty: 1.2,
             top_k: 40,
@@ -58,11 +56,9 @@ export const AIHelper = {
         return output[0].generated_text.replace(prompt, "").trim();
     },
 
-    // 非ASCII文字を削除または置換するクリーンアップ関数
     _cleanPrompt(text) {
         if (!text) return "";
-        // 日本語（非ASCII）が含まれるとモデルがパニックを起こすため、
-        // 英語の文字、数字、記号のみを残します。
+        // Keep ASCII only to avoid model issues with non-ASCII input.
         return text.replace(/[^\x00-\x7F]/g, " ").replace(/\s+/g, " ").trim();
     },
 
