@@ -14,18 +14,15 @@
             align-items: center;
             min-height: 100vh;
             height: auto;
-            /* allow scrolling if content grows */
             margin: 0;
             background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 100%);
             overflow-y: auto;
-            /* permit vertical scroll */
             overflow-x: hidden;
             color: #fff;
             padding: 1rem;
             box-sizing: border-box;
         }
 
-        /* override style.css for home screen centering */
         #app {
             display: flex;
             justify-content: center;
@@ -33,7 +30,6 @@
             width: 100%;
             min-height: 100vh;
             height: auto;
-            /* allow growth */
         }
 
         .container {
@@ -47,7 +43,6 @@
         @media (min-width: 1024px) {
             .container {
                 max-width: 1200px;
-                /* Expand on large screens */
             }
 
             #project-list {
@@ -55,7 +50,6 @@
                 grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
                 gap: 1.5rem !important;
                 max-height: none !important;
-                /* Allow natural height on desktop */
                 padding: 1rem 0 !important;
             }
 
@@ -99,7 +93,6 @@
             font-weight: bold;
         }
 
-        /* Auth UI */
         #auth-container {
             display: flex;
             justify-content: flex-end;
@@ -239,7 +232,8 @@
                     <div id="asset-count" style="font-size: 0.7rem; color: #666; margin-top: 0.5rem;">選択されていません</div>
                 </div>
                 <p style="font-size: 0.65rem; color: #888; margin-top: 0.5rem; text-align: center;">
-                    ※選択した画像は自動的にキャラクターパレットに登録されます。ｗ</p>
+                    ※選択した画像は自動的にキャラクターパレットに登録されます。
+                </p>
             </div>
 
             <div style="display: grid; gap: 1rem;">
@@ -297,14 +291,12 @@
         import NovelStorage from './js/storage.js';
         import Auth from './js/auth.js';
 
-        // 認証の初期化
         Auth.init();
 
         const projectList = document.getElementById('project-list');
         const btnNew = document.getElementById('btn-new');
         const btnSample = document.getElementById('btn-sample');
 
-        // Modal Elements
         const modalNew = document.getElementById('modal-new-project');
         const inputTitle = document.getElementById('new-project-title');
         const inputAssets = document.getElementById('bulk-assets');
@@ -384,7 +376,6 @@
             });
         }
 
-        // --- New Project Flow ---
         if (btnNew) {
             btnNew.onclick = () => {
                 if (inputTitle) inputTitle.value = '';
@@ -431,7 +422,7 @@
             btnCreateScratch.onclick = async () => {
                 const title = (inputTitle ? inputTitle.value.trim() : '') || '無題の物語';
                 const characters = await processAssets();
-                const id = NovelStorage.createProject(title, false); // Create with initial scene
+                NovelStorage.createProject(title, false);
 
                 if (characters.length > 0) {
                     const projectData = await NovelStorage.load();
@@ -457,14 +448,12 @@
             };
         }
 
-        // Initialize
         renderProjects();
 
-        // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW registered'))
+                    .then(() => console.log('SW registered'))
                     .catch(err => console.log('SW registration failed', err));
             });
         }
