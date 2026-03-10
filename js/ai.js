@@ -3,6 +3,9 @@ import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17
 
 let generator = null;
 let initPromise = null;
+let initRetries = 0;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 export const AIHelper = {
     async init(onProgress) {
@@ -10,17 +13,26 @@ export const AIHelper = {
         if (initPromise) return initPromise;
 
         initPromise = (async () => {
-            try {
-                generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
-                    progress_callback: (p) => {
-                        if (onProgress) onProgress(p);
+            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                try {
+                    generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
+                        progress_callback: (p) => {
+                            if (onProgress) onProgress(p);
+                        }
+                    });
+                    initRetries = 0;
+                    return;
+                } catch (err) {
+                    initRetries++;
+                    if (attempt < MAX_RETRIES - 1) {
+                        console.warn(`AI init attempt ${attempt + 1}/${MAX_RETRIES} failed, retrying in ${RETRY_DELAY_MS}ms...`, err);
+                        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+                    } else {
+                        console.error(`AI init failed after ${MAX_RETRIES} attempts:`, err);
+                        initPromise = null;
+                        throw err;
                     }
-                });
-            } catch (err) {
-                initPromise = null;
-                throw err;
-            } finally {
-                if (generator) initPromise = null;
+                }
             }
         })();
 

@@ -1,5 +1,6 @@
 // 認証状態の管理とUI連携モジュール
 import { CloudStorage } from './db.js';
+import NovelStorage from './storage.js';
 
 const Auth = {
     currentUser: null,
@@ -25,13 +26,28 @@ const Auth = {
         // 認証状態の変化を監視
         CloudStorage.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
+                // ログイン時：現在のセッションデータをクラウドに同期してからリロード
                 this.currentUser = session.user;
                 this.updateUI(session.user);
                 await CloudStorage.claimOrphanProjects();
-                // ページをリロードして最新データを表示
-                if (event === 'SIGNED_IN') {
-                    window.location.reload();
+                
+                // 未保存データがあれば保存してからリロード
+                try {
+                    const projectId = localStorage.getItem('active_project_id');
+                    if (projectId) {
+                        const rawData = localStorage.getItem('novel_project_' + projectId);
+                        if (rawData) {
+                            await NovelStorage.save(JSON.parse(rawData).scenes || [], JSON.parse(rawData).characters || []);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Auto-save before reload failed:", e);
                 }
+                
+                // データ同期後にリロード
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             } else if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
                 this.updateUI(null);

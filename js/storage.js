@@ -2,10 +2,28 @@ import { CloudStorage } from './db.js';
 
 const LIST_NAME = 'novel_projects_list';
 const DATA_PREFIX = 'novel_project_';
+const CLOUD_SYNC_MAX_RETRIES = 3;
+const CLOUD_SYNC_RETRY_DELAY = 500;
 
 const NovelStorage = {
   async initCloud() {
     return await CloudStorage.init();
+  },
+
+  async _retrySave(projectId, title, projectData, retryCount = 0) {
+    try {
+      await CloudStorage.save(projectId, title, projectData);
+      return true;
+    } catch (err) {
+      if (retryCount < CLOUD_SYNC_MAX_RETRIES) {
+        console.warn(`Cloud save failed, retrying... (${retryCount + 1}/${CLOUD_SYNC_MAX_RETRIES})`);
+        await new Promise(r => setTimeout(r, CLOUD_SYNC_RETRY_DELAY));
+        return this._retrySave(projectId, title, projectData, retryCount + 1);
+      } else {
+        console.error("Cloud save failed after retries:", err);
+        return false;
+      }
+    }
   },
 
   getProjects() {
@@ -77,7 +95,7 @@ const NovelStorage = {
     if (p) {
       p.updatedAt = new Date().toISOString();
       this.saveProjectsList(list);
-      await CloudStorage.save(id, p.title, projectData);
+      await this._retrySave(id, p.title, projectData);
     }
   },
 
