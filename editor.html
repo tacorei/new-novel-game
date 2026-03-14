@@ -206,6 +206,7 @@
             width: 100%;
             margin: 0 0 var(--base-gap);
             aspect-ratio: 16 / 9;
+            min-height: clamp(260px, 32vw, 520px);
             background: #000;
             background-size: cover;
             background-position: center;
@@ -220,6 +221,38 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(98, 0, 234, 0.2);
         }
 
+        .preview-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(3, 218, 198, 0.18), transparent 35%),
+                radial-gradient(circle at 80% 30%, rgba(98, 0, 234, 0.18), transparent 32%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .preview-box.is-empty::before {
+            opacity: 1;
+        }
+
+        .preview-box.is-empty::after {
+            content: "背景プレビュー";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.72);
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+        }
+
         .preview-text {
             width: 90%;
             /* Wider on small screens */
@@ -229,7 +262,7 @@
             padding: var(--base-padding);
             color: #fff;
             font-size: clamp(0.85rem, 1.5vw, 1.1rem);
-            min-height: clamp(4rem, 8vh, 6rem);
+            min-height: clamp(5.5rem, 10vh, 7.5rem);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
             display: flex;
@@ -238,6 +271,7 @@
             white-space: pre-wrap;
             position: relative;
             z-index: 10;
+            flex: 0 0 auto;
         }
 
         .preview-name-label {
@@ -511,9 +545,6 @@
                         AIパネル</button>
                     <button onclick="location.href='script.html'"
                         style="background: rgba(255,255,255,0.05); font-size: 0.7rem; padding: 0.3rem 0.6rem; border: 1px solid var(--box-border);">台本</button>
-                    <button id="btn-add-scene"
-                        style="background: var(--accent-color); color: #000; font-size: 0.75rem; padding: 0.3rem 1.2rem;">+
-                        追加</button>
                     <button id="btn-play-now"
                         style="background: #3f51b5; color: #fff; font-size: 0.75rem; padding: 0.3rem 1.5rem;">再生</button>
                     <button id="btn-switch-mode"
@@ -734,6 +765,26 @@
                     </div>
                     <button id="btn-add-choice" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
                         選択肢を追加</button>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #aaa;">選択肢の表示方式</label>
+                            <select id="field-choice-mode"
+                                style="width: 100%; margin-top: 0.35rem; background: #222; color: #fff; border: 1px solid #444; padding: 0.5rem; border-radius: 4px;">
+                                <option value="replace">セリフを隠して表示</option>
+                                <option value="inline">セリフの下に表示</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #aaa;">選択肢レイアウト</label>
+                            <select id="field-choice-layout"
+                                style="width: 100%; margin-top: 0.35rem; background: #222; color: #fff; border: 1px solid #444; padding: 0.5rem; border-radius: 4px;">
+                                <option value="bottom-2">下部2択</option>
+                                <option value="bottom-3">下部3択</option>
+                                <option value="center-vertical">中央縦並び</option>
+                            </select>
+                        </div>
+                    </div>
+                    <small style="color: #666; font-size: 0.75rem;">※選択肢表示中はクリック送りできません。発言後に選択肢だけを見せたい場合は「セリフを隠して表示」を使います。</small>
                 </div>
 
                 <div class="form-group">
@@ -963,6 +1014,8 @@
         const fieldSe = document.getElementById('field-se');
         const fieldSeFile = document.getElementById('field-se-file');
         const fieldNextScene = document.getElementById('field-next-scene');
+        const fieldChoiceMode = document.getElementById('field-choice-mode');
+        const fieldChoiceLayout = document.getElementById('field-choice-layout');
         const choicesContainer = document.getElementById('choices-container');
 
         const preview = document.getElementById('preview');
@@ -1080,8 +1133,7 @@
         const btnStartScratch = document.getElementById('btn-start-scratch');
         if (btnStartScratch) {
             btnStartScratch.onclick = () => {
-                const btnAddScene = document.getElementById('btn-add-scene');
-                if (btnAddScene) btnAddScene.click();
+                addNewScene();
                 const welcomeOverlay = document.getElementById('welcome-overlay');
                 if (welcomeOverlay) welcomeOverlay.style.display = 'none';
                 if (editorForm) editorForm.style.display = 'grid';
@@ -1218,6 +1270,30 @@
                 div.onclick = () => selectScene(idx);
                 sidebar.appendChild(div);
             });
+
+            const addSceneBtn = document.createElement('button');
+            addSceneBtn.textContent = '+ シーンを追加';
+            addSceneBtn.style = 'margin-top: 0.75rem; background: var(--accent-color); color: #000; font-size: 0.8rem; padding: 0.7rem 1rem; border-radius: 10px; width: 100%;';
+            addSceneBtn.onclick = () => addNewScene();
+            sidebar.appendChild(addSceneBtn);
+        }
+
+        function addNewScene() {
+            scenes.push({
+                text: '新しいシーン',
+                bg: '',
+                note: '',
+                fade: 1.0,
+                audio: '',
+                se: '',
+                choiceMode: 'replace',
+                choiceLayout: 'bottom-2',
+                choices: []
+            });
+            activeIdx = scenes.length - 1;
+            renderSidebar();
+            selectScene(activeIdx);
+            saveData();
         }
 
         function moveScene(idx, direction) {
@@ -1258,6 +1334,8 @@
                 fieldAudio.value = s.audio || '';
                 fieldSe.value = s.se || '';
                 fieldNextScene.value = s.nextScene || '';
+                fieldChoiceMode.value = s.choiceMode || 'replace';
+                fieldChoiceLayout.value = s.choiceLayout || 'bottom-2';
                 fieldShowName.checked = s.showName || false;
                 updateSpeakerList();
                 fieldSpeaker.value = s.speaker || '';
@@ -1343,6 +1421,8 @@
                 scenes[activeIdx].audio = fieldAudio.value;
                 scenes[activeIdx].se = fieldSe.value;
                 scenes[activeIdx].nextScene = fieldNextScene.value;
+                scenes[activeIdx].choiceMode = fieldChoiceMode.value;
+                scenes[activeIdx].choiceLayout = fieldChoiceLayout.value;
                 scenes[activeIdx].showName = fieldShowName.checked;
                 scenes[activeIdx].speaker = fieldSpeaker.value;
 
@@ -1581,25 +1661,6 @@
             };
         }
 
-        const btnAddScene = document.getElementById('btn-add-scene');
-        if (btnAddScene) {
-            btnAddScene.onclick = () => {
-                scenes.push({
-                    text: '新しいシーン',
-                    bg: '',
-                    note: '',
-                    fade: 1.0,
-                    audio: '',
-                    se: '',
-                    choices: []
-                });
-                activeIdx = scenes.length - 1;
-                renderSidebar();
-                selectScene(activeIdx);
-                saveData();
-            };
-        }
-
         if (btnPlayNow) {
             btnPlayNow.onclick = async () => {
                 saveData();
@@ -1654,6 +1715,7 @@
 
             // Background
             preview.style.backgroundImage = s.bg ? `url(${s.bg})` : 'none';
+            preview.classList.toggle('is-empty', !s.bg);
 
             // Text
             previewMsg.firstChild.nextSibling ? (previewMsg.lastChild.textContent = s.text) : (previewMsg.textContent = s.text);

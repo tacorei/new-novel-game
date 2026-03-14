@@ -43,6 +43,13 @@
             transform: translateX(-50%);
             width: clamp(320px, 90%, 1000px);
             z-index: 10;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        #ui-layer.choice-hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(1rem);
+            pointer-events: none;
         }
 
         #text-box {
@@ -107,14 +114,37 @@
         /* Choice UI */
         #choice-layer {
             position: fixed;
-            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             display: none;
             flex-direction: column;
             gap: 1.2rem;
             width: clamp(280px, 80%, 500px);
             z-index: 50;
+        }
+
+        #choice-layer.layout-center-vertical {
+            top: 50%;
+            bottom: auto;
+            transform: translate(-50%, -50%);
+        }
+
+        #choice-layer.layout-bottom-2,
+        #choice-layer.layout-bottom-3 {
+            bottom: clamp(1.5rem, 7vh, 4rem);
+            top: auto;
+        }
+
+        #choice-layer.layout-bottom-2 {
+            width: clamp(320px, 90%, 900px);
+            display: none;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #choice-layer.layout-bottom-3 {
+            width: clamp(320px, 90%, 1000px);
+            display: none;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .choice-btn {
@@ -219,8 +249,22 @@
         const endScreen = document.getElementById('end-screen');
         const choiceLayer = document.getElementById('choice-layer');
         const clickHint = document.getElementById('click-hint');
+        const uiLayer = document.getElementById('ui-layer');
 
         let bgm = null;
+
+        function hideChoices() {
+            if (!choiceLayer) return;
+            choiceLayer.innerHTML = '';
+            choiceLayer.className = '';
+            choiceLayer.style.display = 'none';
+        }
+
+        function applyChoicePresentation(scene) {
+            const choiceMode = scene.choiceMode || 'replace';
+            if (!uiLayer) return;
+            uiLayer.classList.toggle('choice-hidden', choiceMode === 'replace');
+        }
 
         function renderScene() {
             const scene = scenes[currentIdx];
@@ -228,7 +272,8 @@
             const fadeMs = fadeSeconds * 1000;
 
             isTransitioning = true;
-            if (choiceLayer) choiceLayer.style.display = 'none';
+            hideChoices();
+            if (uiLayer) uiLayer.classList.remove('choice-hidden');
 
             if (overlay) {
                 overlay.style.transition = `opacity ${fadeSeconds}s`;
@@ -302,10 +347,14 @@
             }, fadeMs);
         }
 
-        function showChoices(choices) {
+        function showChoices(scene) {
             if (!choiceLayer) return;
+            const choices = scene.choices || [];
+            const choiceLayout = scene.choiceLayout || 'bottom-2';
             choiceLayer.innerHTML = '';
-            choiceLayer.style.display = 'flex';
+            choiceLayer.className = `layout-${choiceLayout}`;
+            choiceLayer.style.display = choiceLayout === 'center-vertical' ? 'flex' : 'grid';
+            applyChoicePresentation(scene);
             if (clickHint) clickHint.style.display = 'none';
             choices.forEach(c => {
                 const btn = document.createElement('div');
@@ -319,6 +368,8 @@
                     } else {
                         console.warn("Invalid jump target:", c.target);
                     }
+                    hideChoices();
+                    if (uiLayer) uiLayer.classList.remove('choice-hidden');
                     renderScene();
                 };
                 choiceLayer.appendChild(btn);
@@ -331,8 +382,9 @@
                     isTransitioning = false;
                     const scene = scenes[currentIdx];
                     if (scene.choices && scene.choices.length > 0) {
-                        showChoices(scene.choices);
+                        showChoices(scene);
                     } else {
+                        if (uiLayer) uiLayer.classList.remove('choice-hidden');
                         if (clickHint) clickHint.style.display = 'block';
                     }
                 }
