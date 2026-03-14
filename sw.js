@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn-maker-v4';
+const CACHE_NAME = 'vn-maker-v5';
 const ASSETS = [
     './',
     './index.html',
@@ -7,7 +7,10 @@ const ASSETS = [
     './script.html',
     './css/style.css',
     './js/storage.js',
+    './js/db.js',
+    './js/auth.js',
     './js/ai.js',
+    './js/syncQueue.js',
     './manifest.webmanifest'
 ];
 
@@ -36,6 +39,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
     // 開発中 (localhost) は常にネットワークを優先し、キャッシュを回避する設定
     const isLocalhost = event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1');
 
@@ -44,9 +51,10 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    const isNavigationRequest = event.request.mode === 'navigate';
+
     event.respondWith(
         fetch(event.request).then((response) => {
-            // ネットワークから取得できた場合はキャッシュを更新して返す (Network First)
             if (response && response.status === 200 && event.request.url.startsWith('http')) {
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => {
@@ -54,9 +62,15 @@ self.addEventListener('fetch', (event) => {
                 });
             }
             return response;
-        }).catch(() => {
-            // オフライン時はキャッシュから返す
-            return caches.match(event.request);
+        }).catch(async () => {
+            const cached = await caches.match(event.request);
+            if (cached) {
+                return cached;
+            }
+            if (isNavigationRequest) {
+                return caches.match('./index.html');
+            }
+            throw new Error('Resource unavailable offline');
         })
     );
 });

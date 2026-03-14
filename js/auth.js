@@ -5,6 +5,22 @@ import NovelStorage from './storage.js';
 const Auth = {
     currentUser: null,
 
+    _setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    },
+
+    _setAvatar(id, avatarUrl) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (avatarUrl) {
+            el.src = avatarUrl;
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    },
+
     // 認証UIを初期化
     async init() {
         const cloudReady = await CloudStorage.init();
@@ -81,27 +97,24 @@ const Auth = {
     updateUI(user) {
         const loginSection = document.getElementById('auth-login');
         const userSection = document.getElementById('auth-user');
+        const userBadge = document.getElementById('auth-user-badge');
         const userName = document.getElementById('auth-user-name');
         const userAvatar = document.getElementById('auth-user-avatar');
+        const displayName = user?.user_metadata?.full_name || user?.email || 'ユーザー';
+        const avatarUrl = user?.user_metadata?.avatar_url;
 
         if (user) {
-            // ログイン中
             if (loginSection) loginSection.style.display = 'none';
             if (userSection) userSection.style.display = 'flex';
-            if (userName) userName.textContent = user.user_metadata?.full_name || user.email || 'ユーザー';
-            if (userAvatar) {
-                const avatarUrl = user.user_metadata?.avatar_url;
-                if (avatarUrl) {
-                    userAvatar.src = avatarUrl;
-                    userAvatar.style.display = 'block';
-                } else {
-                    userAvatar.style.display = 'none';
-                }
-            }
+            if (userBadge) userBadge.style.display = 'flex';
+            if (userName) userName.textContent = displayName;
+            this._setAvatar('auth-user-avatar', avatarUrl);
         } else {
-            // 未ログイン
             if (loginSection) loginSection.style.display = 'flex';
             if (userSection) userSection.style.display = 'none';
+            if (userBadge) userBadge.style.display = 'none';
+            this._setText('auth-user-name', '');
+            this._setAvatar('auth-user-avatar', '');
         }
     },
 

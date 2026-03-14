@@ -70,8 +70,8 @@ export const AIHelper = {
 
     _cleanPrompt(text) {
         if (!text) return "";
-        // Keep ASCII only to avoid model issues with non-ASCII input.
-        return text.replace(/[^\x00-\x7F]/g, " ").replace(/\s+/g, " ").trim();
+        // Preserve Japanese and other Unicode text while stripping control chars.
+        return String(text).replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
     },
 
     getStoryPrompt(currentText, historyList) {

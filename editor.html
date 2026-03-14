@@ -464,9 +464,14 @@
             <button onclick="location.href='index.html'"
                 style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1.2rem; font-size: 0.8rem;">←
                 ページに戻る</button>
-            <h2
-                style="font-size: 1.2rem; flex-grow: 1; text-align: center; color: #fff; font-weight: normal; margin: 0;">
-                ノベルエディター</h2>
+            <div
+                style="display: flex; align-items: center; justify-content: center; flex-grow: 1; gap: 0.6rem; min-width: 0;">
+                <h2 id="project-title-display"
+                    style="font-size: 1.2rem; text-align: center; color: #fff; font-weight: normal; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ノベルエディター</h2>
+                <button id="btn-rename-project"
+                    style="background: rgba(255,255,255,0.08); border: 1px solid var(--box-border); color: #ccc; font-size: 0.7rem; padding: 0.25rem 0.6rem; width: auto;">名前</button>
+            </div>
 
             <!-- ユーザーバッジ -->
             <div id="auth-user-badge" style="display: none; align-items: center; gap: 0.4rem; margin-right: 0.5rem;">
@@ -774,9 +779,117 @@
         let activeIdx = -1;
         let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
 
+        let statusEl = null;
+        let defaultStatusMessage = 'Unknown';
+        let defaultStatusColor = '#888';
+        let saveTimer = null;
+        let savePending = false;
+        let savePromise = null;
+        const SAVE_DEBOUNCE_MS = 800;
+        const STATUS_CLEAR_MS = 3000;
+
+        function updateStatus(message, color) {
+            if (!statusEl) return;
+            statusEl.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:${color};"></span> ${message}`;
+            statusEl.style.color = '#fff';
+        }
+
+        function restoreDefaultStatus() {
+            updateStatus(defaultStatusMessage, defaultStatusColor);
+        }
+
+        function setStatusSaving() {
+            updateStatus('保存中…', '#ffeb3b');
+        }
+
+        function setStatusSaved() {
+            updateStatus('保存済み', '#4caf50');
+            setTimeout(() => {
+                if (!savePending) restoreDefaultStatus();
+            }, STATUS_CLEAR_MS);
+        }
+
+        function setStatusQueued() {
+            updateStatus('保存済み / 同期待ち', '#ff9800');
+            setTimeout(() => {
+                if (!savePending) restoreDefaultStatus();
+            }, STATUS_CLEAR_MS);
+        }
+
+        function setStatusError(message) {
+            updateStatus(message, '#f44336');
+        }
+
+        async function performSave() {
+            if (!savePending) return;
+            savePending = false;
+            setStatusSaving();
+
+            // Prevent overlapping saves
+            if (savePromise) await savePromise;
+
+            savePromise = NovelStorage.save(scenes, characters)
+                .then((result) => {
+                    if (result?.state === 'queued') {
+                        setStatusQueued();
+                        return;
+                    }
+                    setStatusSaved();
+                })
+                .catch((err) => {
+                    console.error('Save failed:', err);
+                    setStatusError('保存に失敗しました');
+                })
+                .finally(() => {
+                    savePromise = null;
+                });
+
+            await savePromise;
+        }
+
+        function scheduleSave() {
+            savePending = true;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                performSave();
+            }, SAVE_DEBOUNCE_MS);
+        }
+
+        window.addEventListener('novel-storage-status', (event) => {
+            const { state, message } = event.detail || {};
+            if (!statusEl) return;
+
+            if (state === 'queued') {
+                defaultStatusMessage = message || '同期待ち';
+                defaultStatusColor = '#ff9800';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'synced') {
+                defaultStatusMessage = 'Cloud Connected';
+                defaultStatusColor = '#4caf50';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'paused') {
+                defaultStatusMessage = message || 'ログイン後に同期します';
+                defaultStatusColor = '#ff9800';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'error') {
+                defaultStatusMessage = message || '同期エラー';
+                defaultStatusColor = '#f44336';
+                setStatusError(defaultStatusMessage);
+            }
+        });
+
         // Initialize the app after DOM elements are defined below
         async function initApp() {
-            const statusEl = document.getElementById('cloud-status');
+            statusEl = document.getElementById('cloud-status');
             // Cloud Sync Initialization
             if (statusEl) {
                 try {
@@ -789,29 +902,23 @@
                         if (user) {
                             statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
                             statusEl.style.color = '#fff';
-
-                            // ユーザーバッジの表示
-                            const badge = document.getElementById('auth-user-badge');
-                            const avatar = document.getElementById('auth-user-avatar');
-                            const name = document.getElementById('auth-user-name');
-                            if (badge) {
-                                badge.style.display = 'flex';
-                                if (avatar && user.user_metadata?.avatar_url) {
-                                    avatar.src = user.user_metadata.avatar_url;
-                                }
-                                if (name) {
-                                    name.textContent = user.user_metadata?.full_name || '';
-                                }
-                            }
+                            defaultStatusMessage = 'Cloud Connected';
+                            defaultStatusColor = '#4caf50';
                         } else {
                             statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Not Signed In';
+                            defaultStatusMessage = 'Not Signed In';
+                            defaultStatusColor = '#ff9800';
                         }
                     } else {
                         statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
+                        defaultStatusMessage = 'Local Only';
+                        defaultStatusColor = '#ff9800';
                     }
                 } catch (error) {
                     console.error("Failed to initialize cloud storage:", error);
                     statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#f44336;"></span> Offline';
+                    defaultStatusMessage = 'Offline';
+                    defaultStatusColor = '#f44336';
                 }
             }
 
@@ -829,6 +936,7 @@
             }
 
             // UIの初期描画とモード適用
+            updateProjectTitleDisplay();
             renderSidebar();
             renderPalette();
             updateSpeakerList();
@@ -866,11 +974,45 @@
         const btnAiAssist = document.getElementById('btn-ai-assist');
         const btnExport = document.getElementById('btn-export');
         const btnImport = document.getElementById('btn-import');
+        const btnRenameProject = document.getElementById('btn-rename-project');
         const btnSwitchMode = document.getElementById('btn-switch-mode');
         const btnAddChoice = document.getElementById('btn-add-choice');
+        const projectTitleDisplay = document.getElementById('project-title-display');
 
         // Mode DOM
         const modeOverlay = document.getElementById('mode-overlay');
+
+        function getActiveProjectMeta() {
+            const activeProjectId = NovelStorage.getActiveProjectId();
+            return activeProjectId ? NovelStorage.getProjectById(activeProjectId) : null;
+        }
+
+        function updateProjectTitleDisplay() {
+            const project = getActiveProjectMeta();
+            const title = project?.title || 'ノベルエディター';
+            if (projectTitleDisplay) {
+                projectTitleDisplay.textContent = title;
+                projectTitleDisplay.title = title;
+            }
+            document.title = `${title} - Visual Novel Maker`;
+        }
+
+        async function renameCurrentProject() {
+            const project = getActiveProjectMeta();
+            if (!project) return;
+
+            const nextTitle = prompt('新しいタイトルを入力してください', project.title);
+            if (nextTitle === null) return;
+
+            try {
+                await NovelStorage.renameProject(project.id, nextTitle);
+                updateProjectTitleDisplay();
+                renderSidebar();
+            } catch (error) {
+                console.error('Project rename failed:', error);
+                setStatusError('タイトル変更に失敗しました');
+            }
+        }
 
         // AI DOM elements (Studio Panel)
         const aiStudioPanel = document.getElementById('ai-studio-panel');
@@ -1173,6 +1315,10 @@
             saveData();
         };
 
+        if (btnRenameProject) {
+            btnRenameProject.onclick = renameCurrentProject;
+        }
+
 
         function deleteScene(idx) {
             if (scenes.length <= 1) {
@@ -1217,7 +1363,7 @@
                     z: parseInt(div.querySelector('.scene-char-z').value) || 0
                 }));
             }
-            NovelStorage.save(scenes, characters);
+            scheduleSave();
         }
 
         // --- Character Palette Management ---
@@ -1455,8 +1601,9 @@
         }
 
         if (btnPlayNow) {
-            btnPlayNow.onclick = () => {
+            btnPlayNow.onclick = async () => {
                 saveData();
+                await performSave();
                 window.location.href = 'play.html';
             };
         }

@@ -185,6 +185,7 @@
                     <button id="btn-logout">ログアウト</button>
                 </div>
             </div>
+            <div id="cloud-status">同期状態を確認中...</div>
 
             <h1>Visual Novel Maker</h1>
             <p>
@@ -196,6 +197,17 @@
                 <div id="project-list"
                     style="display: grid; gap: 0.8rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
                     <!-- Projects will be listed here -->
+                </div>
+            </div>
+
+            <div id="sync-queue-section" style="margin-bottom: 2rem; text-align: left;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1rem; color: var(--accent-color); margin: 0;">同期キュー</h3>
+                    <button id="btn-retry-sync"
+                        style="background: rgba(255,255,255,0.08); border: 1px solid var(--box-border); color: #ccc; width: auto; padding: 0.45rem 0.8rem; font-size: 0.75rem;">再試行</button>
+                </div>
+                <div id="sync-queue-list"
+                    style="display: grid; gap: 0.6rem; max-height: 220px; overflow-y: auto; padding-right: 0.5rem;">
                 </div>
             </div>
 
@@ -291,9 +303,9 @@
         import NovelStorage from './js/storage.js';
         import Auth from './js/auth.js';
 
-        Auth.init();
-
         const projectList = document.getElementById('project-list');
+        const syncQueueList = document.getElementById('sync-queue-list');
+        const cloudStatus = document.getElementById('cloud-status');
         const btnNew = document.getElementById('btn-new');
         const btnSample = document.getElementById('btn-sample');
 
@@ -304,6 +316,170 @@
         const btnCreateScratch = document.getElementById('create-scratch');
         const btnCreateSample = document.getElementById('create-sample');
         const btnCloseModal = document.getElementById('close-modal');
+        const btnRetrySync = document.getElementById('btn-retry-sync');
+
+        let pendingSyncCount = 0;
+
+        function setCloudStatus(message, color) {
+            if (!cloudStatus) return;
+            const suffix = pendingSyncCount > 0 ? ` (${pendingSyncCount}件保留)` : '';
+            cloudStatus.textContent = `${message}${suffix}`;
+            cloudStatus.style.color = color;
+        }
+
+        async function refreshPendingSyncCount() {
+            pendingSyncCount = await NovelStorage.getPendingSyncCount();
+        }
+
+        async function renderSyncQueue() {
+            if (!syncQueueList) return;
+            const entries = await NovelStorage.getPendingSyncEntries();
+            syncQueueList.innerHTML = '';
+
+            if (entries.length === 0) {
+                syncQueueList.innerHTML = '<p style="text-align:center; font-size: 0.8rem; color:#666;">保留中の同期はありません</p>';
+                return;
+            }
+
+            entries.forEach((entry) => {
+                const item = document.createElement('div');
+                const hasProject = !!NovelStorage.getProjectById(entry.projectId);
+                const label = entry.operation === 'delete'
+                    ? '削除'
+                    : entry.operation === 'save'
+                        ? '保存'
+                        : '更新';
+                item.style = `
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid var(--box-border);
+                    border-radius: 10px;
+                    padding: 0.7rem 0.9rem;
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    align-items: center;
+                `;
+                item.innerHTML = `
+                    <div style="min-width: 0;">
+                        <div style="font-size: 0.8rem; color: var(--accent-color);">${label}</div>
+                        <div style="font-size: 0.9rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${entry.title || entry.projectId}
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end;">
+                        <div style="font-size: 0.72rem; color: #888; white-space: nowrap;">
+                            ${entry.updatedAt ? new Date(entry.updatedAt).toLocaleString() : ''}
+                        </div>
+                        ${hasProject ? '<button class="btn-sync-open" style="background:#444; color:#fff; border:1px solid var(--box-border); width:auto; padding:0.35rem 0.6rem; font-size:0.72rem;">移動</button>' : ''}
+                        <button class="btn-sync-retry" style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid var(--box-border); width:auto; padding:0.35rem 0.6rem; font-size:0.72rem;">再試行</button>
+                        <button class="btn-sync-discard" style="background:transparent; color:#ff8a80; border:1px solid rgba(255,138,128,0.35); width:auto; padding:0.35rem 0.6rem; font-size:0.72rem;">破棄</button>
+                    </div>
+                `;
+                const openBtn = item.querySelector('.btn-sync-open');
+                if (openBtn) {
+                    openBtn.onclick = () => {
+                        NovelStorage.setActiveProjectId(entry.projectId);
+                        window.location.href = 'editor.html';
+                    };
+                }
+                const retryBtn = item.querySelector('.btn-sync-retry');
+                if (retryBtn) {
+                    retryBtn.onclick = async () => {
+                        retryBtn.disabled = true;
+                        try {
+                            await NovelStorage.retryPendingSync();
+                            await refreshPendingSyncCount();
+                            await renderSyncQueue();
+                        } catch (error) {
+                            console.error('Retry failed:', error);
+                            setCloudStatus('同期の再試行に失敗しました', '#f44336');
+                        } finally {
+                            retryBtn.disabled = false;
+                        }
+                    };
+                }
+                const discardBtn = item.querySelector('.btn-sync-discard');
+                if (discardBtn) {
+                    discardBtn.onclick = async () => {
+                        if (!confirm('この保留中の同期を破棄しますか？')) return;
+                        discardBtn.disabled = true;
+                        try {
+                            await NovelStorage.discardPendingSync(entry.projectId);
+                            await refreshPendingSyncCount();
+                            await renderSyncQueue();
+                        } catch (error) {
+                            console.error('Discard failed:', error);
+                            setCloudStatus('保留中の同期を破棄できませんでした', '#f44336');
+                        } finally {
+                            discardBtn.disabled = false;
+                        }
+                    };
+                }
+                syncQueueList.appendChild(item);
+            });
+        }
+
+        async function initializeHome() {
+            try {
+                const isCloudEnabled = await NovelStorage.initCloud();
+                await Auth.init();
+                await refreshPendingSyncCount();
+                await renderSyncQueue();
+                if (!isCloudEnabled) {
+                    setCloudStatus('Local Only', '#ff9800');
+                    return;
+                }
+                if (!navigator.onLine) {
+                    setCloudStatus('Offline / 同期待ちを保持中', '#ff9800');
+                    return;
+                }
+                setCloudStatus(Auth.getUser() ? 'Cloud Connected' : 'Not Signed In', Auth.getUser() ? '#4caf50' : '#ff9800');
+            } catch (error) {
+                console.error('Failed to initialize home screen:', error);
+                setCloudStatus('Offline', '#f44336');
+            }
+        }
+
+        window.addEventListener('novel-storage-status', async (event) => {
+            const { state, message } = event.detail || {};
+            await refreshPendingSyncCount();
+            await renderSyncQueue();
+            if (state === 'queued') {
+                setCloudStatus(message || '同期待ち', '#ff9800');
+            } else if (state === 'synced') {
+                setCloudStatus(Auth.getUser() ? 'Cloud Connected' : '同期完了', '#4caf50');
+            } else if (state === 'paused') {
+                setCloudStatus(message || 'ログイン後に同期します', '#ff9800');
+            } else if (state === 'discarded') {
+                setCloudStatus(message || '同期を破棄しました', '#ff9800');
+            } else if (state === 'error') {
+                setCloudStatus(message || '同期エラー', '#f44336');
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            setCloudStatus('Offline / 同期待ちを保持中', '#ff9800');
+        });
+
+        window.addEventListener('online', () => {
+            setCloudStatus(Auth.getUser() ? 'Cloud Connected' : 'Online', '#4caf50');
+        });
+
+        if (btnRetrySync) {
+            btnRetrySync.onclick = async () => {
+                btnRetrySync.disabled = true;
+                try {
+                    await NovelStorage.retryPendingSync();
+                    await refreshPendingSyncCount();
+                    await renderSyncQueue();
+                } catch (error) {
+                    console.error('Bulk retry failed:', error);
+                    setCloudStatus('同期の再試行に失敗しました', '#f44336');
+                } finally {
+                    btnRetrySync.disabled = false;
+                }
+            };
+        }
 
         function renderProjects() {
             const projects = NovelStorage.getProjects();
@@ -339,6 +515,7 @@
                     </div>
                     <div class="controls" style="display: flex; gap: 0.5rem;">
                         <button class="btn-edit" data-id="${p.id}" style="padding: 0.5rem 1rem; font-size: 0.8rem;">編集</button>
+                        <button class="btn-rename" data-id="${p.id}" style="padding: 0.5rem 0.8rem; font-size: 0.8rem; background: #444;">名前</button>
                         <button class="btn-play" data-id="${p.id}" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: var(--accent-color); color: black;">Play</button>
                         <button class="btn-del" data-id="${p.id}" style="padding: 0.4rem; font-size: 0.8rem; background: transparent; color: #666; width: auto; border: none;">🗑</button>
                     </div>
@@ -356,6 +533,22 @@
                     window.location.href = 'editor.html';
                 };
 
+                const renameBtn = item.querySelector('.btn-rename');
+                renameBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const nextTitle = prompt('新しいタイトルを入力してください', p.title);
+                    if (nextTitle === null) return;
+                    try {
+                        await NovelStorage.renameProject(p.id, nextTitle);
+                        await refreshPendingSyncCount();
+                        await renderSyncQueue();
+                        renderProjects();
+                    } catch (error) {
+                        console.error('Rename failed:', error);
+                        setCloudStatus('タイトル変更に失敗しました', '#f44336');
+                    }
+                };
+
                 const playBtn = item.querySelector('.btn-play');
                 playBtn.onclick = (e) => {
                     e.stopPropagation();
@@ -364,10 +557,17 @@
                 };
 
                 const delBtn = item.querySelector('.btn-del');
-                delBtn.onclick = (e) => {
+                delBtn.onclick = async (e) => {
                     e.stopPropagation();
                     if (confirm(`「${p.title}」を削除してもよろしいですか？`)) {
-                        NovelStorage.deleteProject(p.id);
+                        try {
+                            await NovelStorage.deleteProject(p.id);
+                            await refreshPendingSyncCount();
+                            await renderSyncQueue();
+                        } catch (error) {
+                            console.error('Delete failed:', error);
+                            setCloudStatus('削除の同期に失敗しました', '#f44336');
+                        }
                         renderProjects();
                     }
                 };
@@ -426,7 +626,7 @@
 
                 if (characters.length > 0) {
                     const projectData = await NovelStorage.load();
-                    NovelStorage.save(projectData.scenes, characters);
+                    await NovelStorage.save(projectData.scenes, characters);
                 }
 
                 window.location.href = 'editor.html';
@@ -444,10 +644,13 @@
         if (btnSample) {
             btnSample.onclick = async () => {
                 await NovelStorage.loadSample();
+                await refreshPendingSyncCount();
+                await renderSyncQueue();
                 renderProjects();
             };
         }
 
+        await initializeHome();
         renderProjects();
 
         if ('serviceWorker' in navigator) {

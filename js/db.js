@@ -9,10 +9,18 @@ export const CloudStorage = {
     _userCache: null,
     _userCacheExpiry: 0,
 
+    isReady() {
+        return this.client !== null;
+    },
+
     async init() {
         if (!this.config.url || !this.config.key) {
             console.warn("Supabase configuration missing. Cloud saving is disabled.");
             return false;
+        }
+
+        if (this.client) {
+            return true;
         }
 
         if (!window.supabase) {
@@ -124,7 +132,7 @@ export const CloudStorage = {
 
         const { data, error } = await this.client
             .from('projects')
-            .select('data')
+            .select('data, updated_at')
             .eq('id', projectId)
             .eq('user_id', user.id)
             .single();
@@ -135,7 +143,10 @@ export const CloudStorage = {
             }
             return null;
         }
-        return data ? data.data : null;
+        return data ? {
+            data: data.data,
+            updatedAt: data.updated_at || null
+        } : null;
     },
 
     async delete(projectId) {
