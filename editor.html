@@ -206,6 +206,7 @@
             width: 100%;
             margin: 0 0 var(--base-gap);
             aspect-ratio: 16 / 9;
+            min-height: clamp(260px, 32vw, 520px);
             background: #000;
             background-size: cover;
             background-position: center;
@@ -220,6 +221,38 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(98, 0, 234, 0.2);
         }
 
+        .preview-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(3, 218, 198, 0.18), transparent 35%),
+                radial-gradient(circle at 80% 30%, rgba(98, 0, 234, 0.18), transparent 32%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .preview-box.is-empty::before {
+            opacity: 1;
+        }
+
+        .preview-box.is-empty::after {
+            content: "背景プレビュー";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.72);
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+        }
+
         .preview-text {
             width: 90%;
             /* Wider on small screens */
@@ -229,7 +262,7 @@
             padding: var(--base-padding);
             color: #fff;
             font-size: clamp(0.85rem, 1.5vw, 1.1rem);
-            min-height: clamp(4rem, 8vh, 6rem);
+            min-height: clamp(5.5rem, 10vh, 7.5rem);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
             display: flex;
@@ -238,6 +271,7 @@
             white-space: pre-wrap;
             position: relative;
             z-index: 10;
+            flex: 0 0 auto;
         }
 
         .preview-name-label {
@@ -464,9 +498,14 @@
             <button onclick="location.href='index.html'"
                 style="background: rgba(255,255,255,0.1); border: 1px solid var(--box-border); padding: 0.5rem 1.2rem; font-size: 0.8rem;">←
                 ページに戻る</button>
-            <h2
-                style="font-size: 1.2rem; flex-grow: 1; text-align: center; color: #fff; font-weight: normal; margin: 0;">
-                ノベルエディター</h2>
+            <div
+                style="display: flex; align-items: center; justify-content: center; flex-grow: 1; gap: 0.6rem; min-width: 0;">
+                <h2 id="project-title-display"
+                    style="font-size: 1.2rem; text-align: center; color: #fff; font-weight: normal; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ノベルエディター</h2>
+                <button id="btn-rename-project"
+                    style="background: rgba(255,255,255,0.08); border: 1px solid var(--box-border); color: #ccc; font-size: 0.7rem; padding: 0.25rem 0.6rem; width: auto;">名前</button>
+            </div>
 
             <!-- ユーザーバッジ -->
             <div id="auth-user-badge" style="display: none; align-items: center; gap: 0.4rem; margin-right: 0.5rem;">
@@ -506,9 +545,6 @@
                         AIパネル</button>
                     <button onclick="location.href='script.html'"
                         style="background: rgba(255,255,255,0.05); font-size: 0.7rem; padding: 0.3rem 0.6rem; border: 1px solid var(--box-border);">台本</button>
-                    <button id="btn-add-scene"
-                        style="background: var(--accent-color); color: #000; font-size: 0.75rem; padding: 0.3rem 1.2rem;">+
-                        追加</button>
                     <button id="btn-play-now"
                         style="background: #3f51b5; color: #fff; font-size: 0.75rem; padding: 0.3rem 1.5rem;">再生</button>
                     <button id="btn-switch-mode"
@@ -729,6 +765,26 @@
                     </div>
                     <button id="btn-add-choice" style="background: #333; margin-top: 0.5rem; font-size: 0.8rem;">+
                         選択肢を追加</button>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #aaa;">選択肢の表示方式</label>
+                            <select id="field-choice-mode"
+                                style="width: 100%; margin-top: 0.35rem; background: #222; color: #fff; border: 1px solid #444; padding: 0.5rem; border-radius: 4px;">
+                                <option value="replace">セリフを隠して表示</option>
+                                <option value="inline">セリフの下に表示</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #aaa;">選択肢レイアウト</label>
+                            <select id="field-choice-layout"
+                                style="width: 100%; margin-top: 0.35rem; background: #222; color: #fff; border: 1px solid #444; padding: 0.5rem; border-radius: 4px;">
+                                <option value="bottom-2">下部2択</option>
+                                <option value="bottom-3">下部3択</option>
+                                <option value="center-vertical">中央縦並び</option>
+                            </select>
+                        </div>
+                    </div>
+                    <small style="color: #666; font-size: 0.75rem;">※選択肢表示中はクリック送りできません。発言後に選択肢だけを見せたい場合は「セリフを隠して表示」を使います。</small>
                 </div>
 
                 <div class="form-group">
@@ -774,9 +830,117 @@
         let activeIdx = -1;
         let currentMode = localStorage.getItem('editor_mode') || 'ai'; // 'ai' or 'standard'
 
+        let statusEl = null;
+        let defaultStatusMessage = 'Unknown';
+        let defaultStatusColor = '#888';
+        let saveTimer = null;
+        let savePending = false;
+        let savePromise = null;
+        const SAVE_DEBOUNCE_MS = 800;
+        const STATUS_CLEAR_MS = 3000;
+
+        function updateStatus(message, color) {
+            if (!statusEl) return;
+            statusEl.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:${color};"></span> ${message}`;
+            statusEl.style.color = '#fff';
+        }
+
+        function restoreDefaultStatus() {
+            updateStatus(defaultStatusMessage, defaultStatusColor);
+        }
+
+        function setStatusSaving() {
+            updateStatus('保存中…', '#ffeb3b');
+        }
+
+        function setStatusSaved() {
+            updateStatus('保存済み', '#4caf50');
+            setTimeout(() => {
+                if (!savePending) restoreDefaultStatus();
+            }, STATUS_CLEAR_MS);
+        }
+
+        function setStatusQueued() {
+            updateStatus('保存済み / 同期待ち', '#ff9800');
+            setTimeout(() => {
+                if (!savePending) restoreDefaultStatus();
+            }, STATUS_CLEAR_MS);
+        }
+
+        function setStatusError(message) {
+            updateStatus(message, '#f44336');
+        }
+
+        async function performSave() {
+            if (!savePending) return;
+            savePending = false;
+            setStatusSaving();
+
+            // Prevent overlapping saves
+            if (savePromise) await savePromise;
+
+            savePromise = NovelStorage.save(scenes, characters)
+                .then((result) => {
+                    if (result?.state === 'queued') {
+                        setStatusQueued();
+                        return;
+                    }
+                    setStatusSaved();
+                })
+                .catch((err) => {
+                    console.error('Save failed:', err);
+                    setStatusError('保存に失敗しました');
+                })
+                .finally(() => {
+                    savePromise = null;
+                });
+
+            await savePromise;
+        }
+
+        function scheduleSave() {
+            savePending = true;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                performSave();
+            }, SAVE_DEBOUNCE_MS);
+        }
+
+        window.addEventListener('novel-storage-status', (event) => {
+            const { state, message } = event.detail || {};
+            if (!statusEl) return;
+
+            if (state === 'queued') {
+                defaultStatusMessage = message || '同期待ち';
+                defaultStatusColor = '#ff9800';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'synced') {
+                defaultStatusMessage = 'Cloud Connected';
+                defaultStatusColor = '#4caf50';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'paused') {
+                defaultStatusMessage = message || 'ログイン後に同期します';
+                defaultStatusColor = '#ff9800';
+                if (!savePending && !savePromise) restoreDefaultStatus();
+                return;
+            }
+
+            if (state === 'error') {
+                defaultStatusMessage = message || '同期エラー';
+                defaultStatusColor = '#f44336';
+                setStatusError(defaultStatusMessage);
+            }
+        });
+
         // Initialize the app after DOM elements are defined below
         async function initApp() {
-            const statusEl = document.getElementById('cloud-status');
+            statusEl = document.getElementById('cloud-status');
             // Cloud Sync Initialization
             if (statusEl) {
                 try {
@@ -789,29 +953,23 @@
                         if (user) {
                             statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#4caf50; box-shadow:0 0 5px #4caf50;"></span> Cloud Connected';
                             statusEl.style.color = '#fff';
-
-                            // ユーザーバッジの表示
-                            const badge = document.getElementById('auth-user-badge');
-                            const avatar = document.getElementById('auth-user-avatar');
-                            const name = document.getElementById('auth-user-name');
-                            if (badge) {
-                                badge.style.display = 'flex';
-                                if (avatar && user.user_metadata?.avatar_url) {
-                                    avatar.src = user.user_metadata.avatar_url;
-                                }
-                                if (name) {
-                                    name.textContent = user.user_metadata?.full_name || '';
-                                }
-                            }
+                            defaultStatusMessage = 'Cloud Connected';
+                            defaultStatusColor = '#4caf50';
                         } else {
                             statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Not Signed In';
+                            defaultStatusMessage = 'Not Signed In';
+                            defaultStatusColor = '#ff9800';
                         }
                     } else {
                         statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#ff9800;"></span> Local Only';
+                        defaultStatusMessage = 'Local Only';
+                        defaultStatusColor = '#ff9800';
                     }
                 } catch (error) {
                     console.error("Failed to initialize cloud storage:", error);
                     statusEl.innerHTML = '<span style="width:6px; height:6px; border-radius:50%; background:#f44336;"></span> Offline';
+                    defaultStatusMessage = 'Offline';
+                    defaultStatusColor = '#f44336';
                 }
             }
 
@@ -829,6 +987,7 @@
             }
 
             // UIの初期描画とモード適用
+            updateProjectTitleDisplay();
             renderSidebar();
             renderPalette();
             updateSpeakerList();
@@ -855,6 +1014,8 @@
         const fieldSe = document.getElementById('field-se');
         const fieldSeFile = document.getElementById('field-se-file');
         const fieldNextScene = document.getElementById('field-next-scene');
+        const fieldChoiceMode = document.getElementById('field-choice-mode');
+        const fieldChoiceLayout = document.getElementById('field-choice-layout');
         const choicesContainer = document.getElementById('choices-container');
 
         const preview = document.getElementById('preview');
@@ -866,11 +1027,45 @@
         const btnAiAssist = document.getElementById('btn-ai-assist');
         const btnExport = document.getElementById('btn-export');
         const btnImport = document.getElementById('btn-import');
+        const btnRenameProject = document.getElementById('btn-rename-project');
         const btnSwitchMode = document.getElementById('btn-switch-mode');
         const btnAddChoice = document.getElementById('btn-add-choice');
+        const projectTitleDisplay = document.getElementById('project-title-display');
 
         // Mode DOM
         const modeOverlay = document.getElementById('mode-overlay');
+
+        function getActiveProjectMeta() {
+            const activeProjectId = NovelStorage.getActiveProjectId();
+            return activeProjectId ? NovelStorage.getProjectById(activeProjectId) : null;
+        }
+
+        function updateProjectTitleDisplay() {
+            const project = getActiveProjectMeta();
+            const title = project?.title || 'ノベルエディター';
+            if (projectTitleDisplay) {
+                projectTitleDisplay.textContent = title;
+                projectTitleDisplay.title = title;
+            }
+            document.title = `${title} - Visual Novel Maker`;
+        }
+
+        async function renameCurrentProject() {
+            const project = getActiveProjectMeta();
+            if (!project) return;
+
+            const nextTitle = prompt('新しいタイトルを入力してください', project.title);
+            if (nextTitle === null) return;
+
+            try {
+                await NovelStorage.renameProject(project.id, nextTitle);
+                updateProjectTitleDisplay();
+                renderSidebar();
+            } catch (error) {
+                console.error('Project rename failed:', error);
+                setStatusError('タイトル変更に失敗しました');
+            }
+        }
 
         // AI DOM elements (Studio Panel)
         const aiStudioPanel = document.getElementById('ai-studio-panel');
@@ -938,8 +1133,7 @@
         const btnStartScratch = document.getElementById('btn-start-scratch');
         if (btnStartScratch) {
             btnStartScratch.onclick = () => {
-                const btnAddScene = document.getElementById('btn-add-scene');
-                if (btnAddScene) btnAddScene.click();
+                addNewScene();
                 const welcomeOverlay = document.getElementById('welcome-overlay');
                 if (welcomeOverlay) welcomeOverlay.style.display = 'none';
                 if (editorForm) editorForm.style.display = 'grid';
@@ -1076,6 +1270,30 @@
                 div.onclick = () => selectScene(idx);
                 sidebar.appendChild(div);
             });
+
+            const addSceneBtn = document.createElement('button');
+            addSceneBtn.textContent = '+ シーンを追加';
+            addSceneBtn.style = 'margin-top: 0.75rem; background: var(--accent-color); color: #000; font-size: 0.8rem; padding: 0.7rem 1rem; border-radius: 10px; width: 100%;';
+            addSceneBtn.onclick = () => addNewScene();
+            sidebar.appendChild(addSceneBtn);
+        }
+
+        function addNewScene() {
+            scenes.push({
+                text: '新しいシーン',
+                bg: '',
+                note: '',
+                fade: 1.0,
+                audio: '',
+                se: '',
+                choiceMode: 'replace',
+                choiceLayout: 'bottom-2',
+                choices: []
+            });
+            activeIdx = scenes.length - 1;
+            renderSidebar();
+            selectScene(activeIdx);
+            saveData();
         }
 
         function moveScene(idx, direction) {
@@ -1116,6 +1334,8 @@
                 fieldAudio.value = s.audio || '';
                 fieldSe.value = s.se || '';
                 fieldNextScene.value = s.nextScene || '';
+                fieldChoiceMode.value = s.choiceMode || 'replace';
+                fieldChoiceLayout.value = s.choiceLayout || 'bottom-2';
                 fieldShowName.checked = s.showName || false;
                 updateSpeakerList();
                 fieldSpeaker.value = s.speaker || '';
@@ -1173,6 +1393,10 @@
             saveData();
         };
 
+        if (btnRenameProject) {
+            btnRenameProject.onclick = renameCurrentProject;
+        }
+
 
         function deleteScene(idx) {
             if (scenes.length <= 1) {
@@ -1197,6 +1421,8 @@
                 scenes[activeIdx].audio = fieldAudio.value;
                 scenes[activeIdx].se = fieldSe.value;
                 scenes[activeIdx].nextScene = fieldNextScene.value;
+                scenes[activeIdx].choiceMode = fieldChoiceMode.value;
+                scenes[activeIdx].choiceLayout = fieldChoiceLayout.value;
                 scenes[activeIdx].showName = fieldShowName.checked;
                 scenes[activeIdx].speaker = fieldSpeaker.value;
 
@@ -1217,7 +1443,7 @@
                     z: parseInt(div.querySelector('.scene-char-z').value) || 0
                 }));
             }
-            NovelStorage.save(scenes, characters);
+            scheduleSave();
         }
 
         // --- Character Palette Management ---
@@ -1435,28 +1661,10 @@
             };
         }
 
-        const btnAddScene = document.getElementById('btn-add-scene');
-        if (btnAddScene) {
-            btnAddScene.onclick = () => {
-                scenes.push({
-                    text: '新しいシーン',
-                    bg: '',
-                    note: '',
-                    fade: 1.0,
-                    audio: '',
-                    se: '',
-                    choices: []
-                });
-                activeIdx = scenes.length - 1;
-                renderSidebar();
-                selectScene(activeIdx);
-                saveData();
-            };
-        }
-
         if (btnPlayNow) {
-            btnPlayNow.onclick = () => {
+            btnPlayNow.onclick = async () => {
                 saveData();
+                await performSave();
                 window.location.href = 'play.html';
             };
         }
@@ -1507,6 +1715,7 @@
 
             // Background
             preview.style.backgroundImage = s.bg ? `url(${s.bg})` : 'none';
+            preview.classList.toggle('is-empty', !s.bg);
 
             // Text
             previewMsg.firstChild.nextSibling ? (previewMsg.lastChild.textContent = s.text) : (previewMsg.textContent = s.text);

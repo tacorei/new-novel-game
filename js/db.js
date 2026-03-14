@@ -6,11 +6,21 @@ export const CloudStorage = {
     },
 
     client: null,
+    _userCache: null,
+    _userCacheExpiry: 0,
+
+    isReady() {
+        return this.client !== null;
+    },
 
     async init() {
         if (!this.config.url || !this.config.key) {
             console.warn("Supabase configuration missing. Cloud saving is disabled.");
             return false;
+        }
+
+        if (this.client) {
+            return true;
         }
 
         if (!window.supabase) {
@@ -40,13 +50,26 @@ export const CloudStorage = {
 
     async signOut() {
         if (!this.client) return;
+        this._userCache = null;
+        this._userCacheExpiry = 0;
         const { error } = await this.client.auth.signOut();
         if (error) console.error("Sign Out Error:", error);
     },
 
     async getUser() {
         if (!this.client) return null;
+        
+        // キャッシュが有効な場合は使用
+        if (this._userCache && Date.now() < this._userCacheExpiry) {
+            return this._userCache;
+        }
+        
         const { data: { user } } = await this.client.auth.getUser();
+        
+        // ユーザー情報をキャッシュ（30秒間有効）
+        this._userCache = user;
+        this._userCacheExpiry = Date.now() + 30000;
+        
         return user;
     },
 
@@ -59,6 +82,9 @@ export const CloudStorage = {
     onAuthStateChange(callback) {
         if (!this.client) return null;
         return this.client.auth.onAuthStateChange((event, session) => {
+            // ユーザーキャッシュをクリア
+            this._userCache = null;
+            this._userCacheExpiry = 0;
             callback(event, session);
         });
     },
@@ -93,7 +119,10 @@ export const CloudStorage = {
                 updated_at: new Date().toISOString()
             });
 
-        if (error) console.error("Cloud Save Error:", error);
+        if (error) {
+            console.error("Cloud Save Error:", error);
+            throw error;
+        }
     },
 
     async load(projectId) {
@@ -103,7 +132,7 @@ export const CloudStorage = {
 
         const { data, error } = await this.client
             .from('projects')
-            .select('data')
+            .select('data, updated_at')
             .eq('id', projectId)
             .eq('user_id', user.id)
             .single();
@@ -114,7 +143,10 @@ export const CloudStorage = {
             }
             return null;
         }
-        return data ? data.data : null;
+        return data ? {
+            data: data.data,
+            updatedAt: data.updated_at || null
+        } : null;
     },
 
     async delete(projectId) {
